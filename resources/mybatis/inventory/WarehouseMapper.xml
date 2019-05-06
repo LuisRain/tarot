@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="WarehouseMapper">
+	
+	
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into tp_warehouse(
+			warehouse_name,	
+			warehouse_address,	
+			warehouse_tel,	
+			warehouse_number,
+			warehouse_type
+		) values (
+			#{warehouse_name},	
+			#{warehouse_address},	
+			#{warehouse_tel},	
+			#{warehouse_number},
+			#{warehouse_type}
+		)
+	</insert>
+	
+	
+	<!-- 删除-->
+	<delete id="delete" parameterType="pd">
+		delete from tp_warehouse
+		where 
+			id = #{id}
+	</delete>
+	
+	
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update  tp_warehouse
+			set 
+				warehouse_name = #{warehouse_name},
+				warehouse_address = #{warehouse_address},
+				warehouse_tel = #{warehouse_tel},
+				warehouse_type = #{warehouse_type},
+			id = id
+			where 
+				id = #{id}
+	</update>
+	
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select 
+			warehouse_name,	
+			warehouse_address,	
+			warehouse_tel,	
+			warehouse_number,	
+			warehouse_type,
+			id
+		from 
+			tp_warehouse
+		where 
+			id = #{id}
+	</select>
+	
+	
+	<!-- 列表 -->
+	<select id="datalistPage" parameterType="page" resultType="pd">
+		select
+				a.warehouse_name,	
+				a.warehouse_address,	
+				a.warehouse_tel,	
+				a.warehouse_number,	
+				a.warehouse_type,
+				a.id
+		from 
+				tp_warehouse a
+				 <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			  where 
+			   <if test="pd.searchcriteria==1">
+			   a.warehouse_name LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==2">
+			   a.warehouse_address LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    a.warehouse_tel LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==4">
+			     a.warehouse_number  LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			   
+			 </if>
+				ORDER BY a.id DESC
+	</select>
+	
+	<!-- 列表(全部) -->
+	<select id="listAll" parameterType="pd" resultType="pd">
+		select
+				a.warehouse_name,	
+				a.warehouse_address,	
+				a.warehouse_tel,	
+				a.warehouse_number,
+				a.warehouse_type	,
+				a.id
+		from 
+				tp_warehouse a
+	</select>
+	
+	<!-- 批量删除 -->
+	<delete id="deleteAll" parameterType="String">
+		delete from tp_warehouse
+		where 
+			id in
+		<foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>
+	</delete>
+	<!--仓库分类列表 -->
+	<select id="warehouselist" parameterType="page" resultType="pd">
+		select * from tp_warehouse_ck
+	</select>
+	<!-- 修改 -->
+	<update id="updatewarehousetypelist" parameterType="pd">
+		update tp_warehouse_ck 
+		set parent_id=${parent_id}
+		where id=${id}
+	</update>
+	<!-- 新增-->
+	<insert id="typesave" parameterType="pd">
+		insert into tp_warehouse_ck(
+			name,	
+			parent_id,	
+			level_id
+		) values (
+			#{warehouse_name},	
+			#{warehouse_id},	
+			${level_id}
+		)
+	</insert>
+</mapper>

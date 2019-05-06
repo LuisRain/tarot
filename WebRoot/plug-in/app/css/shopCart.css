@@ -1,0 +1,335 @@
+body {
+    background-color: #f8f8f8;
+}
+
+body .main {
+    padding-top: 0.88rem;
+    padding-bottom: 2.2rem;
+}
+
+body .main section {
+    border-bottom: 2px solid #f8f8f8;
+}
+
+body .main section .title {
+    overflow: hidden;
+    font-size: 0;
+    background-color: #fff;
+    position: absolute;
+    bottom: 1.45rem;
+    z-index: 9999;
+}
+
+body .main section .title label {
+    display: inline-block;
+    width: 0.7rem;
+    vertical-align: top;
+    text-align: center;
+    overflow: hidden;
+
+}
+
+body .main section .title label input {
+    height: 0;
+    width: 0;
+    opacity: 0;
+}
+
+body .main section .title a {
+    display: inline-block;
+    height: 0.7rem;
+    line-height: .7rem;
+    position: relative;
+    overflow: hidden;
+}
+
+body .main section .title input {
+    border: none;
+    display: inline-block;
+    color: #282828;
+    font-size: 0.24rem;
+}
+
+body .main section .product {
+    overflow: hidden;
+}
+
+body .main section .product li {
+    overflow: hidden;
+    padding-top: 0.3rem;
+    background-color: #fff;
+    position: relative;
+    margin-bottom: .1rem;
+}
+
+body .main section .product li label {
+    display: block;
+    width: 0.7rem;
+    height: 1.5rem;
+    padding:0.2rem;
+    overflow: hidden;
+    float: left;
+}
+
+body .main section .product li label input {
+    height: 0;
+    width: 0;
+    opacity: 0;
+}
+
+body .main section .product li label.forbidden span {
+    background-color: #f8f8f8;
+}
+
+body .main section .product li a {
+    width: 6.8rem;
+    height: 1.6rem;
+    position: relative;
+    overflow: hidden;
+    float: left;
+    width: 85%;
+}
+
+body .main section .product li a img {
+    width: 1.6rem;
+    height: 1.6rem;
+}
+
+body .main section .product li a .infor {
+    width: 5.2rem;
+    height: 100%;
+    overflow: hidden;
+    padding: 0 0.2rem;
+    position: relative;
+}
+
+body .main section .product li a .infor p {
+    font-size: 0.24rem;
+    color: #282828;
+}
+
+body .main section .product li a .infor .detail {
+    position: absolute;
+    left: 0.2rem;
+    bottom: 0;
+}
+
+body .main section .product li a .infor .detail .newPrice {
+    font-size: 0.24rem;
+    color: #f5445d;
+}
+
+body .main section .product li a .infor .detail .oldPrice {
+    font-size: 0.22rem;
+    color: #808080;
+}
+
+body .main section .product li a .operate {
+    position: absolute;
+    padding-right: 0.2rem;
+    right: 0rem;
+    top: 0;
+    height: 1.6rem;
+    line-height: 1.6rem;
+    font-size: 0;
+}
+
+body .main section .product li a .operate .minus,
+body .main section .product li a .operate .add {
+    border: 0;
+    vertical-align: bottom;
+    background-color: #f8f8f8;
+}
+
+body .main section .product li a .operate .num {
+    font-size: 0.24rem;
+    color: #5c5c5c;
+    vertical-align: bottom;
+    text-align: center;
+    line-height: 0.4rem;
+}
+
+body .main section .product li a .operate .del {
+    position: absolute;
+    right: 0.2rem;
+    bottom: 0;
+    font-size: 0;
+    border: 0;
+    background-color: #f8f8f8;
+    vertical-align: bottom;
+}
+
+body .main section .product li .delete {
+    position: absolute;
+    right: 0.8rem;
+    top: 0;
+    width: 0.44rem;
+    height: 1.8rem;
+    line-height: 1.8rem;
+    font-size: 0;
+    display: none;
+}
+
+body .main section .product li .delete input {
+    border: 0;
+    vertical-align: bottom;
+    margin-bottom: 0.1rem;
+    background-color: #f8f8f8;
+}
+
+body .main section .cleanInfor {
+    height: 0.8rem;
+    line-height: 0.8rem;
+    /*padding: 0 0.2rem;*/
+    text-align: right;
+    color: #808080;
+    background-color: #fff;
+    position: fixed;
+    width: 100%;
+    bottom: 1.2rem;
+}
+
+body .main section .cleanInfor span {
+    color: #808080;
+    font-size: 0.24rem;
+}
+
+body .main section .cleanInfor .clean {
+    display: inline-block;
+    margin-left: 0.2rem;
+    width: 1.3rem;
+    height: 0.44rem;
+    line-height: 0.44rem;
+    text-align: center;
+    color: #fff;
+    font-size: 0.24rem;
+    border: 0;
+    border-radius: 0.22rem;
+    background-color: #f5445d;
+}
+
+#emptydiv {
+    text-align: center;
+    padding-top: 2rem;
+}
+
+#emptydiv img {
+    width: 3.89rem;
+    height: 2.85rem;
+}
+
+#emptydiv p {
+    margin: 0.2rem 0 0.3rem;
+}
+
+#emptydiv a {
+    display: block;
+    width: 1.5rem;
+    height: 0.5rem;
+    color: #fff;
+    line-height: 0.5rem;
+    text-align: center;
+    border-radius: 0.5rem;
+    background-color: #f5445d;
+    text-decoration: none;
+    margin: 0 auto;
+}
+/*商品列表*/
+.listBox{
+    width: 100%;
+}
+.listBox>li{
+    width: 100%;
+    background: #fff;
+    padding:.2rem;
+    margin: .1rem 0;
+}
+.listLeft{
+    width: 70%;
+    display: inline-block;
+    vertical-align: top;
+}
+.orderImg{
+    width: 1.2rem;
+    height: 1.2rem;
+    display: inline-block;
+    vertical-align: top;
+}
+.listText{
+    display: inline-block;
+    width: 60%;
+    margin-left: .1rem;
+}
+.listText>h3{
+    color: #333;
+    font-size: .28rem;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: .2rem;
+}
+.listText>p{
+    color: #333;
+    font-size: .28rem;
+    margin-top: .4rem;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.listRight{
+    display: inline-block;
+    width: 27%;
+    text-align: right;
+}
+.listRight>input{
+    width: 1rem;
+    height: 0.6rem;
+    margin-top: .2rem;
+}
+
+.check{
+    vertical-align: top;
+    margin-top: .5rem;
+    margin-right: .1rem;
+}
+.orderBottom{
+    position: fixed;
+    bottom: 1.3rem;
+    width: 100%;
+    height: 1rem;
+    background: #fff;
+}
+.orderCheck{
+    font-size: .28rem;
+    width: 1.5rem;
+    display: inline-block;
+    margin: .2rem;
+}
+#checkAll{
+    vertical-align: top;
+    margin: 0.05rem .1rem;
+}
+.orderTotal{
+    text-align: right;
+    display: inline-block;
+    width: 45%;
+}
+.orderSubmit{
+    display: inline-block;
+    text-align: center;
+    width: 1.8rem;
+    height: .6rem;
+    line-height: .6rem;
+    background: #E15656;
+    border-radius: 5px;
+    color: #fff;
+    font-size: .32rem;
+    cursor: pointer;
+}
+.newPrice{
+    position: absolute;
+    right: 23px;
+    top:18px;
+}

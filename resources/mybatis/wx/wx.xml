@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="wx">
+	
+	<!-- 新增app用户 -->
+	<insert id="saveOrder" parameterType="pd">
+		insert into wx_order (
+			latitude,
+			longitude,
+			fileurl,
+			create_time,
+			name,
+			phone,
+			number_plate,
+			userid,
+			driver_id,
+			site,
+			phone_sms,
+			remark,
+			serverid
+		) values (
+			#{latitude},
+			#{longitude},
+			#{fileurl},
+			#{create_time},
+			#{name},
+			#{phone},
+			#{number_plate},
+			#{userid},
+			#{driver_id},
+			#{site},
+			#{phone_sms},
+		    #{remark},
+		    #{serverId}
+		    
+			
+		)
+	</insert>
+	
+	<select id="updateorderlistPage" parameterType="page" resultType="pd">
+	select * from wx_order
+	 <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			  where 
+			   <if test="pd.searchcriteria==1">
+			  name  LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==2">
+			  number_plate  LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    phone LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			   
+			 </if>
+			 ORDER BY create_time DESC
+	</select>
+	
+	<select id="updateorderlist"  resultType="pd">
+	select * from wx_order
+			 ORDER BY create_time DESC
+	</select>
+	
+	<select id="getupdateorder" parameterType="pd" resultType="pd">
+	select * from wx_order where id=${id}
+	</select>
+	
+	<select id="getWxUserlistPage" parameterType="pd" resultType="pd">
+	select * from wx_driver_details
+	 <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			  where 
+			   <if test="pd.searchcriteria==1">
+			  name  LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==2">
+			  number_plate  LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    phone LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			   
+			 </if>
+			 ORDER BY create_time DESC
+	</select>
+	
+	<select id="getWxUserlist" parameterType="pd" resultType="pd">
+	select * from wx_driver_details
+	ORDER BY create_time DESC
+	</select>
+	
+	<select id="getWxUserByUserid" parameterType="pd" resultType="pd">
+	select * from wx_driver_details as wdd where wdd.userid=#{Userid}
+	</select>
+	<select id="findByphone" parameterType="pd" resultType="pd">
+	select * from wx_driver_details as wdd where wdd.phone=#{phone}
+	</select>
+	<insert id="saveWxUser" parameterType="pd" keyProperty="id">
+        insert into wx_driver_details (
+           userid,
+           number_plate,
+           create_time,
+           phone,
+           name
+           ) values (
+           #{userid},
+           #{number_plate},
+           #{create_time},
+           #{phone},
+           #{name}
+            )
+	</insert>
+	<update id="updateWxUser" parameterType="pd">
+	UPDATE wx_driver_details
+	SET
+     number_plate=#{number_plate},
+     phone=#{phone},
+     name=#{name}
+     where   userid=#{userid}
+	</update>
+	<delete id="deleteWxUser" parameterType="pd">
+		delete from wx_driver_details 
+		where userid=#{userid}
+	</delete>
+	
+	
+	<select id="getWxSmslistPage" parameterType="pd" resultType="pd">
+	select * from wx_sms
+	 <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			  where 
+			   <if test="pd.searchcriteria==1">
+			  phone  LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==2">
+			  content  LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			 </if>
+			 	 ORDER BY create_time DESC
+	</select>
+	
+	<!-- 添加短信回复记录 -->
+	<insert id="saveSms" parameterType="pd">
+		insert into wx_sms (
+		phone,
+		create_time,
+		content
+		) values (
+		#{phone},
+		#{create_time},
+		#{content}
+		)
+	</insert>
+</mapper>

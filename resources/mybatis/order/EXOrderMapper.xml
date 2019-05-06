@@ -1,0 +1,709 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="EXOrderMapper">
+	
+	
+	<update id="updateExOrdercz"  parameterType="pd">
+		update t_ex_warehouse_order tewo,
+		(	
+		select sum(tpt.sku_volume*tsoi.final_quantity) skv,
+				sum(tpt.sku_weight*tsoi.final_quantity) skw,
+				sum(tsoi.final_quantity*tsoi.sale_price) aom,
+				tsoi.order_num
+ 			from t_product tpt LEFT JOIN t_ex_order_item tsoi on tsoi.product_id=tpt.id 
+ 			where tsoi.order_num =#{orderNum}
+			group by tsoi.order_num
+ 		) gg 
+		set 
+			tewo.final_amount=gg.aom,
+			tewo.total_svolume=gg.skv,
+			tewo.total_weight=gg.skw,
+			tewo.amount=gg.aom
+		where 
+			tewo.order_num=gg.order_num
+			and
+			tewo.order_num =#{orderNum}
+	</update>
+	
+	<update id="updateexitemcz" parameterType="pd">
+		update t_ex_order_item
+			set final_quantity=${final_quantity},
+			quantity=${quantity},
+			gift_quantity=${gift_quantity},
+			total_count=${total_count}
+			where id=${id}
+	</update>
+	
+	
+	<select id="findexordercz" parameterType="pd" resultType="pd">
+		
+		select tewo.* from t_ex_warehouse_order tewo
+		
+		where 
+		tewo.type=${type} and tewo.order_type=1 and tewo.ivt_state=1
+		
+		and tewo.merchant_id=#{merchant_id}
+	</select>
+	<select id="findexitemcz" parameterType="pd" resultType="pd" useCache="false">
+		select teoi.* from t_ex_order_item teoi
+		where 
+		 teoi.order_num =#{orderNum}
+		 and  teoi.product_id =${product_id}
+	</select>
+	
+	<update id="updateextype" parameterType="pd">
+		update t_ex_warehouse_order
+		set checked_state=#{checked_state},
+		order_date=now()
+		where order_num=#{order_num}
+	</update>
+	<select id="findexorderitem" parameterType="pd" resultType="pd" flushCache="false">
+		
+		SELECT teoi.*,tpt.cargo_space_id,tpt.bar_code,tpt.product_name from t_ex_order_item teoi 
+		left join t_product tpt on tpt.id=teoi.product_id
+		where 1=1
+		<if test="id!=null and id!=''">
+			and teoi.id=${id}
+		</if>
+		<if test="order_num!='' and order_num!=null">
+			and teoi.order_num=#{order_num}
+		</if>
+		
+	</select>
+	<update id="updateExOrderAmount"  parameterType="java.util.List">
+		update t_ex_warehouse_order tewo,
+		
+		(select sum(tpt.sku_volume*tsoi.final_quantity) skv,sum(tpt.sku_weight*tsoi.final_quantity) skw,sum(tsoi.final_quantity*tsoi.sale_price) aom,tsoi.order_num
+ 		from t_product tpt LEFT JOIN t_ex_order_item tsoi on tsoi.product_id=tpt.id 
+ 			where tsoi.order_num in
+ 			<foreach item="item" collection="list" open="(" close=")" separator=",">
+				#{item.order_num}
+			</foreach>
+			group by tsoi.order_num
+ 		) gg 
+ 		
+		set 
+			tewo.final_amount=gg.aom,
+			tewo.total_svolume=gg.skv,
+			tewo.total_weight=gg.skw,
+			tewo.amount=gg.aom
+		where 
+			tewo.order_num=gg.order_num
+			and
+			tewo.order_num in 
+			<foreach item="item" collection="list" open="(" close=")" separator=",">
+				#{item.order_num}
+			</foreach>
+	</update>
+	
+	<insert id="saveExOrderItemsupplier" parameterType="java.util.List">
+		insert into t_ex_order_item(
+			group_num,
+			order_num,
+			product_id,
+			sale_price,
+			purchase_price,
+			quantity,
+			final_quantity,
+			svolume,
+			weight,
+			creator,
+			comment,
+			state,
+			is_ivt_BK,
+			gift_quantity,
+			total_count
+		)values
+		<foreach item="item" collection="list"  separator=",">
+			(#{item.group_num},#{item.order_num},#{item.product_id},
+			
+			 #{item.sale_price},#{item.purchase_price},#{item.quantity},#{item.final_quantity},
+			 
+			 #{item.svolume},#{item.weight},#{item.creator},
+			 
+			 #{item.comment},#{item.state},#{item.is_ivt_BK},${item.gift_quantity},${item.total_count}
+			)
+		</foreach>	
+	</insert>
+	
+	
+	<insert id="saveExOrderItemList" parameterType="java.util.List">
+		insert into t_ex_order_item(
+			group_num,
+			order_num,
+			product_id,
+			sale_price,
+			quantity,
+			final_quantity,
+			svolume,
+			weight,
+			creator,
+			comment,
+			state,
+			is_ivt_BK
+			<!-- product_time -->
+		)values
+		<foreach item="item" collection="list"  separator=",">
+			(#{item.group_num},#{item.order_num},#{item.product_id},
+			
+			 #{item.sale_price},#{item.quantity},#{item.final_quantity},
+			 
+			 #{item.svolume},#{item.weight},#{item.creator},
+			 
+			 #{item.comment},#{item.state},#{item.is_ivt_BK}
+			<!--  <if test="product_time!='' and product_time!=null">
+			 	,#{item.product_time}
+			 </if>
+			  <if test="product_time=='' or product_time==null">
+			 	,Null
+			 </if> -->
+			)
+		</foreach>	
+	</insert>
+	<insert id="saveExOrderList" parameterType="java.util.List">
+		insert into t_ex_warehouse_order(
+			group_num,
+			order_num,
+			checked_state,
+			merchant_id,
+			manager_name,
+			manager_tel,
+			deliver_address,
+			comment,
+			final_amount,
+			total_svolume,
+			total_weight,
+			paid_amount,
+			is_ivt_order_print,
+			is_temporary,
+			user_id,
+			is_order_print,
+			ivt_state,
+			amount,
+			order_type,
+			ck_id,
+			type
+		)values
+		<foreach item="item" collection="list"  separator=",">
+			(#{item.group_num},#{item.order_num},#{item.checked_state},
+			
+			 #{item.merchant_id},#{item.manager_name},#{item.manager_tel},
+			 
+			 #{item.deliver_address},#{item.comment},#{item.final_amount},
+			 
+			 #{item.total_svolume},#{item.total_weight},#{item.paid_amount},#{item.is_ivt_order_print},
+			 
+			 #{item.is_temporary},#{item.user_id},#{item.is_order_print},#{item.ivt_state},
+			 
+			 #{item.amount},#{item.order_type},#{item.ck_id},#{item.type}
+			)
+		</foreach>	
+	</insert>
+	
+
+
+   <!-- 列表(全部) -->
+	<select id="eXOrderlistPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT                         
+			texo.id,
+			texo.group_num,
+			texo.order_num,
+			texo.checked_state,
+			texo.order_date,
+			texo.manager_name,
+			texo.manager_tel ,
+			texo.comment ,
+			texo.final_amount ,
+			texo.total_svolume ,
+			texo.total_weight ,
+			texo.paid_amount ,
+			texo.is_ivt_order_print,
+			texo.is_temporary,
+			texo.create_time,
+			texo.is_order_print,
+			texo.ivt_state,
+			texo.wave_sorting_num,
+			tm.id as merchant_id,
+			tm.merchant_name,
+			tm.contact_person,
+			tm.mobile,
+			tm.address,
+			tm.merchant_num,
+			tm.remarks,
+			su.USER_ID,
+			su.USERNAME,
+			su.PHONE,
+			su.NUMBER
+		FROM t_ex_warehouse_order texo
+		LEFT JOIN t_merchant tm ON tm.id = texo.merchant_id AND ts.state=1
+		LEFT JOIN sys_user su ON su.id = texo.user_id
+		where 1=1 
+     <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			   
+			   <if test="pd.searchcriteria==1">
+			    and  tm.merchant_name, LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    and texo.order_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+	    </if>
+	      <if test="pd.searchcriteria==2">
+			         <if test="pd.lastLoginStart!=null and pd.lastLoginStart!=''">
+			          and texo.order_date &gt;= #{pd.StartDate} 
+		            </if>
+	              <if test="pd.lastLoginEnd!=null and pd.lastLoginEnd!=''">
+			        and texo.order_date &lt;= #{pd.EndDate} 
+		           </if>
+			   </if>
+			    order by texo.id desc
+	</select>
+	<!-- 列表 -->
+	<select id="eXOrderNew" parameterType="pd" resultType="pd" useCache="false">
+		SELECT                         
+			texo.id,
+			texo.group_num,
+			texo.order_num,
+			texo.checked_state,
+			texo.order_date,
+			texo.manager_name,
+			texo.manager_tel ,
+			texo.comment ,
+			texo.final_amount ,
+			texo.total_svolume ,
+			texo.total_weight ,
+			texo.paid_amount ,
+			texo.is_ivt_order_print,
+			texo.create_time,
+			texo.is_order_print,
+			texo.wave_sorting_num,
+			texo.ivt_state,
+			tm.id as merchant_id,
+			tm.short_name,
+			tm.contact_person,
+			tm.mobile,
+			tm.address,
+			tm.merchant_num,
+			tm.remarks,
+			su.USER_ID,
+			su.USERNAME,
+			su.PHONE,
+			su.NUMBER
+		FROM t_merchant tm,t_ex_warehouse_order texo
+		LEFT JOIN sys_user su ON su.USER_ID = texo.user_id
+		WHERE is_temporary=2 
+		AND texo.merchant_id = tm.id
+     <if test="ivtState != null and ivtState != ''">
+     <!-- 根据订单状态搜索订单 1=新出库单；2=已审核；3=已导出拆分订单；4=已导出合并订单；5=实际出库单，订单完成；6=订单取消； -->
+			AND texo.ivt_state = #{ivtState} 
+	</if>
+	</select>
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into t_ex_warehouse_order(
+			group_num,
+			order_num,
+			checked_state,
+			order_date,
+			manager_name,
+			manager_tel ,
+			comment,
+			final_amount ,
+			total_svolume ,
+			total_weight ,
+			paid_amount ,
+			is_ivt_order_print,
+			is_temporary,
+			create_time,
+			is_order_print,
+			ivt_state,
+			merchant_id,
+			user_id
+		) values (
+			#{group_num},	
+			#{order_num},	
+			#{checked_state},	
+			#{order_date},
+			#{manager_name},	
+			#{manager_tel},	
+			#{comment},	
+			#{final_amount},	
+			#{total_svolume},
+			#{total_weight},
+			#{paid_amount},	
+			#{is_ivt_order_print},
+			#{is_temporary},
+			NOW(),
+			#{is_order_print},				
+			1,	
+			#{merchant_id},	
+			#{user_id}
+		)
+	</insert>
+	<!-- 新增-->
+	<insert id="saveEXOrder" useGeneratedKeys="true"  parameterType="java.util.List">
+		insert into t_ex_warehouse_order(
+			group_num,
+			order_num,
+			checked_state,
+			order_date,
+			manager_name,
+			manager_tel ,
+			comment,
+			final_amount ,
+			amount ,
+			total_svolume ,
+			total_weight ,
+			paid_amount ,
+			is_ivt_order_print,
+			is_temporary,
+			create_time,
+			is_order_print,
+			ivt_state,
+			merchant_id,
+			user_id,
+			order_type,
+			ck_id
+		) values 
+		 <foreach collection="list" item="item" index="index" separator="," >
+		(
+			#{item.groupNum},	
+			#{item.orderNum},	
+			#{item.checkedState},	
+			#{item.orderDate},
+			#{item.managerName},	
+			#{item.managerTel},	
+			#{item.comment},	
+			#{item.finalAmount},
+			#{item.amount},	
+			#{item.totalSvolume},
+			#{item.totalWeight},
+			#{item.paidAmount},	
+			#{item.is_ivt_order_print},
+			#{item.is_temporary},
+			NOW(),
+			#{item.is_order_print},				
+			1,	
+			#{item.merchant.id},	
+			#{item.user.USER_ID},
+			#{item.orderType},
+			${item.ckId}
+		)
+		</foreach>
+	</insert>
+	
+	<!-- 删除-->
+	<delete id="delete" parameterType="pd">
+		UPDATE  t_ex_warehouse_order
+		SET state=2
+		WHERE 
+			id = #{id}
+	</delete>
+	<!-- 删除-->
+	<delete id="deleteList" parameterType="java.util.List">
+		delete from t_ex_warehouse_order
+		where group_num in
+		<foreach collection="list" item ="model" open="(" separator="," close=")">
+			#{model.groupNum}
+		</foreach>
+	</delete>
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update  t_ex_warehouse_order
+			set 
+			<if test="checked_state!=null and checked_state!=''">
+				checked_state=#{checked_state},
+			</if>
+			<if test="order_date!=null and order_date!=''">
+				order_date=#{order_date},
+			</if>
+			<if test="manager_name!=null and manager_name!=''">
+				manager_name=#{manager_name},
+			</if>
+			<if test="manager_tel!=null and manager_tel!=''">
+				manager_tel= #{manager_tel},
+			</if>
+			<if test="comment!=null and comment!=''">
+				comment=#{comment},
+			</if>
+			<if test="final_amount!=null and final_amount!=''">
+				final_amount=#{final_amount} ,
+			</if>
+			<if test="total_svolume!=null and total_svolume!=''">
+				total_svolume=#{total_svolume} ,
+			</if>
+			<if test="total_weight!=null and total_weight!=''">
+				total_weight=#{total_weight} ,
+			</if>
+			<if test="paid_amount!=null and paid_amount!=''">
+				paid_amount=#{paid_amount} ,
+			</if>
+			<if test="is_ivt_order_print!=null and is_ivt_order_print!=''">
+				is_ivt_order_print=#{is_ivt_order_print},
+			</if>
+			<if test="is_order_print!=null and is_order_print!=''">
+				is_order_print=#{is_order_print},
+			</if>
+			<if test="ivt_state!=null and ivt_state!=''">
+				ivt_state=#{ivt_state},
+			</if>
+			<if test="merchant_id!=null and merchant_id!='' and merchant_id>0">
+				merchant_id=#{merchant_id},
+			</if>
+			<if test="user_id!=null and user_id!='' and user_id>0">
+				user_id=#{user_id}
+			</if>
+			where 
+				id = #{id}
+	</update>
+	
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		SELECT                         
+			texo.id,
+			texo.group_num,
+			texo.order_num,
+			texo.checked_state,
+			texo.order_date,
+			texo.manager_name,
+			texo.manager_tel ,
+			texo.comment ,
+			texo.final_amount ,
+			texo.total_svolume ,
+			texo.total_weight ,
+			texo.paid_amount ,
+			texo.is_ivt_order_print,
+			texo.wave_sorting_num,
+			texo.is_temporary,
+			texo.create_time,
+			texo.is_order_print,
+			texo.ivt_state,
+			tm.id as merchant_id,
+			tm.merchant_name,
+			tm.contact_person,
+			tm.mobile,
+			tm.address,
+			tm.merchant_num,
+			tm.remarks,
+			su.USER_ID,
+			su.USERNAME,
+			su.PHONE,
+			su.NUMBER
+		FROM t_ex_warehouse_order texo
+		LEFT JOIN t_merchant tm ON tm.id = texo.merchant_id AND ts.state=1
+		LEFT JOIN sys_user su ON su.id = texo.user_id
+			<if test="id!=null and id!='' and id>0">
+				AND texo.id=#{id}
+			</if>
+			<if test="order_num!=null and order_num!='' ">
+				AND texo.user_id=#{user_id}
+			</if>
+	</select>
+	<!-- 修改 -->
+	<update id="editIvtState" parameterType="pd">
+		update  t_ex_warehouse_order
+			set 
+				ivt_state=#{ivt_state},
+				wave_order=#{wave_order}
+			where 
+				id = #{id}
+	</update>
+	<!-- 修改 -->
+	<update id="editIvtStateAndFinalAmount" parameterType="pd">
+		update  t_ex_warehouse_order
+			set 
+				ivt_state=#{ivt_state},
+				final_amount=#{final_amount}
+			where 
+				id = #{id}
+	</update>
+	<!-- 修改 -->
+	<update id="editPerCount" parameterType="pd">
+		update  t_ex_order_item
+			set 
+				per_count=#{per_count}
+			where 
+				id = #{id}
+	</update>
+	<!-- 修改 -->
+	<update id="editWaveSotringNum" parameterType="pd">
+		update  t_ex_warehouse_order
+			set 
+				wave_sorting_num=#{wave_sorting_num}
+			where 
+				id = #{id}
+	</update>
+	<update id="editTotalCount" parameterType="pd">
+		update  t_ex_order_item
+			set 
+				total_count=#{total_count}
+			where 
+				id = #{id}
+	</update>
+	<update id="editPerCountAndTotalCount" parameterType="pd">
+		update  t_ex_order_item
+			set 
+				total_count=#{total_count},
+				per_count=#{per_count}
+			where 
+				id = #{id}
+	</update>
+	<select id="findEXOrderByIds" parameterType="pd" resultType="pd">
+		SELECT
+			texoi.id texoiId,                         
+			texoi.group_num,
+			texoi.per_count perCount,
+			texoi.order_num
+		FROM t_ex_warehouse_order texo,t_ex_order_item texoi
+		WHERE texoi.order_num = texo.order_num 
+			AND texo.id IN 
+		 <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>	;			 
+	</select>
+	<select id="findEXOrderItemByIds" parameterType="pd" resultType="pd">
+		SELECT
+			texoi.id texoiId,                         
+			texoi.per_count,
+			texoi.total_count,
+			texoi.sale_price,
+			texoi.group_num,
+			texo.id texoId,
+			texo.wave_sorting_num,
+			tp.box_number
+		FROM t_ex_warehouse_order texo,t_ex_order_item texoi,t_product tp
+		WHERE texoi.order_num = texo.order_num 
+			AND tp.id = texoi.product_id
+			AND texo.id IN 
+		 <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>	;			 
+	</select>
+	<select id="findSplitTotalCountOfEXOrderItemByIds" parameterType="pd" resultType="pd">
+		SELECT
+			texoi.id texoiId,
+			tpc.`name`,
+			texoi.zy_order_num,
+			texoi.total_count totalCount,
+			texoi.per_count perCount,
+			texo.wave_sorting_num wave_sorting_num,
+			tm.id mid,
+			tm.merchant_num mnum,
+			tm.short_name mname,
+			tp.id pid,
+			tp.product_name pname,
+			tp.product_num pnum,
+			tp.bar_code pbarcode,
+			tp.box_number boxNumber,			
+			tp.packing_measurement_id,
+			tppp.product_price,
+			tp.unit,
+			tp.product_num,
+			tpcs.id cargoSpace_id,
+			tpcs.zone zone,
+			tpcs.storey storey,
+			tpcs.storey_num storeyNum,
+			tpmu.id unitId,
+			tpmu.unit_name unitName
+		FROM
+			t_ex_warehouse_order texo,
+			t_ex_order_item texoi,
+			t_merchant tm,
+			tp_cargo_space tpcs,
+			tp_meterage_unit tpmu,
+			tp_product_price tppp,
+			t_product tp,
+			tp_warehouse_ck tpc
+		WHERE
+			texoi.state = 1
+		AND tpc.id=texo.ck_id
+		AND tp.id = texoi.product_id 
+		AND tppp.product_id=tp.id  AND tppp.price_type=2
+		AND texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND texo.is_temporary = 2
+		AND texo.ivt_state in (3,5)
+		AND texo.order_type = 1
+		AND texoi.order_num = texo.order_num
+		AND tm.id = texo.merchant_id
+		AND tpmu.id = tp.unit AND tpmu.STATUS = 1
+		AND tp.cargo_space_id = tpcs.id
+		AND texo.wave_sorting_num = #{waveSortingGroupNum}
+		<if test="ck_id!=0">
+			AND texo.ck_id=#{ck_id}
+		</if>
+		<if test="waveOrder>0">
+			AND	texo.wave_order=#{waveOrder}
+			</if>
+			ORDER BY
+	tpcs.zone ASC,
+	tpcs.storey ASC,
+	tpcs.storey_num ASC,
+	CONVERT (tp.product_name USING gbk) ASC,
+	CONVERT (tm.short_name USING gbk) ASC
+		<!-- AND texo.id IN 
+			 <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>	;	  -->
+	</select>
+	<select id="findSplitTotalCountOfEXOrderItemByIdsBq" parameterType="pd" resultType="pd">
+		SELECT
+			texoi.id texoiId,
+			texoi.zy_order_num,
+			texoi.total_count totalCount,
+			texoi.per_count perCount,
+			texo.wave_sorting_num wave_sorting_num,
+			tm.id mid,
+			tm.merchant_num mnum,
+			tm.short_name mname,
+			tp.id pid,
+			tp.product_name pname,
+			tp.product_num pnum,
+			tp.bar_code pbarcode,
+			tp.box_number boxNumber,			
+			tp.packing_measurement_id,
+			tppp.product_price,
+			tp.unit,
+			tp.product_num,
+			tpcs.id cargoSpace_id,
+			tpcs.zone zone,
+			tpcs.storey storey,
+			tpcs.storey_num storeyNum,
+			tpmu.id unitId,
+			tpmu.unit_name unitName
+		FROM
+			t_ex_warehouse_order texo left join  t_ex_order_item texoi on texoi.order_num = texo.order_num
+			left join t_product tp  on tp.id = texoi.product_id 
+			left join t_merchant tm on tm.id = texo.merchant_id 
+			left join tp_cargo_space tpcs  on tp.cargo_space_id = tpcs.id
+			left join tp_meterage_unit tpmu on tpmu.id = tp.unit AND tpmu.STATUS = 1
+			left join tp_product_price tppp  on tppp.product_id=tp.id AND tppp.relation_id=0 AND tppp.price_type=2
+		WHERE
+			texoi.state = 1
+		AND texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND texo.is_temporary = 2
+		AND (texo.ivt_state = 3 OR texo.ivt_state = 2 or texo.ivt_state=5)
+		AND texo.order_type = 1
+		AND texo.wave_sorting_num = #{waveSortingGroupNum}
+		ORDER BY
+	tpcs.zone ASC,
+	tpcs.storey ASC,
+	tpcs.storey_num ASC,
+	CONVERT (tp.product_name USING gbk) ASC,
+	CONVERT (tm.short_name USING gbk) ASC
+		<!-- AND texo.id IN 
+			 <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>	;	  -->
+	</select>
+	<update id="editFinalQuantity" parameterType="pd">
+		update  t_ex_order_item
+			set 
+				final_quantity=#{final_quantity}
+			where 
+				id = #{id}
+	</update>
+</mapper>

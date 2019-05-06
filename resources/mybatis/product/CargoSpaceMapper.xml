@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CargoSpace">
+	<!-- 新增-->
+	<insert id="save" parameterType="pd" keyProperty="id">
+		insert into tp_cargo_space(
+		cargo_space_num,
+		zone,
+		storey,
+		storey_num
+		) values (
+		#{cargo_space_num},
+		#{zone},
+		#{storey},
+		#{storey_num}
+		)
+	</insert>
+	<insert id="saveHandheld" parameterType="pd" keyProperty="id"
+		useGeneratedKeys="true">
+		insert into tp_cargo_space(
+		cargo_space_num,
+		zone,
+		storey,
+		storey_num
+		) values (
+		#{cargo_space_num},
+		#{zone},
+		#{storey},
+		#{storey_num}
+		)
+	</insert>
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update   tp_cargo_space
+		 set
+		zone=#{zone},
+		storey=#{storey},
+		storey_num=#{storey_num}
+		where 
+		id=#{CARGO_SPACE_ID}
+		
+	</update>
+	<!-- 查询一条货位号信息 -->
+	<select id="findCargo" resultType="pd">
+		select * from tp_cargo_space 
+		where 
+			storey_num=#{storey_num}
+			and storey=#{storey}
+			and zone=#{zone}
+			<if test="cargo_space_num!=null and cargo_space_num!=''">
+				and cargo_space_num=#{cargo_space_num}
+			</if>
+			LIMIT 1;
+	</select>
+	
+	
+	<!-- 删除仓库位置-->
+	<delete id="deleteCargoSpace" parameterType="pd" flushCache="false">
+		delete from tp_cargo_space
+		where 
+			id = #{csid};
+	</delete>
+	
+	<!-- 批量删除仓库位置 -->
+	<delete id="deleteAllCargoSpace" parameterType="String" flushCache="false">
+		delete from tp_cargo_space
+		where 
+			id in
+  			 <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                  #{item}
+             </foreach>
+             ;
+	</delete>
+</mapper>

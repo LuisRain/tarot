@@ -1,0 +1,24 @@
+.clear{clear: both;}
+body,td{font: 8px "Microsoft yahei",SimHei normal!important;}
+.table-new td{line-height:18px;}
+.table{border-top: 1px solid #000!important;border-left: 2px solid #eee!important;width: 100%;}
+.table tr.trbg{background: #f9f9f9;}
+.table td{border-bottom: 1px solid #000!important;border-right: 1px solid #000!important;height: 20px;}
+.txtLeft{text-align: left;width: 35%;padding-left: 15px;}
+.txtRight{text-align: right;width: 15%;padding-right: 15px;}
+.table{margin-top: 10px;margin-bottom: 10px;}
+.table td{text-align: center;line-height:20px;}
+.txt{width:80%;font-size: 8px;margin: 0 auto;padding: 10px 0;}
+.left,.right{width: 40%;float: left;text-align: left;}
+.right{float: right;}
+.txt b{display: inline-block;margin: 0 10px;}
+.btn{float: right;margin: 10px 0;}
+.printBtn{float:right;}
+.printBtn b{background: url(static/img/print.png) no-repeat -2px -4px;width: 20px;height: 20px;display: block;float: left;margin-right: 3px;}
+.btn a:hover{background: #f9f9f9;}
+.print-title{margin: 25px auto 15px;}
+.print-title h2,.print-title h4{margin:0;padding:0;text-align:center;}
+.print-title h2{font-size:16px!important;}
+.print-title h4{font-size:16px!important;}
+.print-title-h2 img{float:left;margin-left:100px;padding-top:3px;display:block;}
+.print-title-h2 a{color: #333;text-decoration: none;display: block;padding: 6px 10px;font-weight:normal;font-size:8px;}

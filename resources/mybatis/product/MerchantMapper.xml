@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="MerchantMapper">
+
+	<update id="editmerchant" parameterType="pd">
+		UPDATE  t_merchant
+		SET 
+			merchant_name=#{merchant_name},
+			short_name=#{short_name},
+			contact_person=#{contact_person},
+			mobile=#{mobile},
+			address=#{address},
+		    city=#{city},
+		    create_user=#{user},
+		    update_time=now(),
+			remarks=#{remarks},
+			phone=#{phone},
+			website=#{website}
+		WHERE 
+			id = #{id}
+	</update>
+	<!-- 通过name获取数据 -->
+	<select id="handheldMerchantCargo" parameterType="pd" resultType="pd">
+		select tpt.id,tpt.merchant_name from t_merchant tpt , t_merchant_space tms,tp_cargo_space tcs
+		WHERE tpt.id=tms.merchant_id
+		and tms.cargo_space_id=tcs.id   
+		where tcs.cargo_space_num=${cargo_space_num}
+	</select>
+
+<!-- 列表(全部) -->
+	<select id="merchantlistPage" parameterType="page" resultType="pd" useCache="false">
+		select
+		  t_merchant.id,
+t_merchant.merchant_num,
+t_merchant.merchant_name,
+t_merchant.short_name,
+t_merchant.contact_person,
+t_merchant.mobile,
+t_merchant.address,
+t_merchant.state,
+ta.area_name as cityName,
+t_merchant.phone
+		from 
+			 t_merchant  as t_merchant 
+			 Left join tm_area as ta on ta.id= t_merchant.city
+			  where  state = 1 
+			 <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			
+			    <if test="pd.searchcriteria==1">
+			   and   (t_merchant.short_name LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   
+			   or t_merchant.merchant_name LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   )
+			   </if>
+			    <if test="pd.searchcriteria==2">
+			    and  t_merchant.contact_person LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    and  t_merchant.merchant_num  = #{pd.keyword}
+			   </if>
+			 </if>
+			  <if test="pd.city !=0">
+			    and t_merchant.city=${pd.city}
+			  </if>
+			  <if test="pd.areaNum != null and pd.areaNum != ''">
+			    and ta.area_num = #{pd.areaNum}
+			  </if>
+			    order by  t_merchant.id desc
+	</select>
+	
+	<!-- 删除用户 -->
+	<delete id="deleteMerchant" parameterType="pd" flushCache="false">
+	    delete from t_merchant where id= #{id}
+	</delete>
+	<!-- 删除用户 -->
+	<delete id="deleteMerchantByOldId" parameterType="String" flushCache="false">
+	    delete from t_merchant where id= #{oldId}
+	</delete>
+	
+	<!-- 批量删除用户 -->
+	<delete id="deleteAllMerchant" parameterType="String" flushCache="false">
+		 update t_merchant set state = 2 
+		where 
+			id in
+  			 <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                  #{item}
+             </foreach>
+             ;
+	</delete>
+	
+	
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into t_merchant(
+			id,
+			merchant_num,
+			merchant_name,
+			contact_person,
+			mobile,
+			address,
+			create_time,
+			state,
+			remarks,
+			city,
+			create_user,
+			update_time,
+			phone,
+			website,
+			short_name
+		) values (
+			#{id},
+			#{merchant_num},	
+			#{merchant_name},	
+			#{contact_person},	
+			#{mobile},	
+			#{address},
+			NOW(),	
+			1,	
+			#{remarks},
+			#{city},
+			#{user},
+			NOW(),
+			#{phone},
+			#{website},
+			#{short_name}
+		)
+	</insert>
+		<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd"  useCache="false">
+		select 
+			merchant_num,
+			merchant_name,
+			short_name,
+			contact_person,
+			mobile,
+			address,
+			create_time,
+			state,
+			remarks,	
+			id,
+			city,
+			phone,
+			website
+		from 
+			t_merchant
+		where 
+			id = #{id}
+	</select>
+		<!-- 通过ID获取数据 -->
+	<select id="findMerchantById" parameterType="pd" resultType="pd">
+		select 
+			merchant_num,
+			merchant_name,
+			contact_person,
+			mobile,
+			address,
+			create_time,
+			state,
+			remarks,	
+			id,
+			city,
+			phone
+		from 
+			t_merchant
+		where 
+			id = #{sup_id}
+	</select>
+		<!-- 通过name获取数据 -->
+	<select id="findByName" parameterType="pd" resultType="pd">
+		SELECT 
+			id,
+			merchant_num,
+			merchant_name,
+			contact_person,
+			city,
+			mobile,
+			address,
+			create_time,
+			state,
+			remarks	
+		FROM 
+			t_merchant
+		WHERE 
+			merchant_name LIKE CONCAT('%','${merchant_name}','%' )   
+	</select>
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		UPDATE  t_merchant
+		SET 
+		 	id=#{id},
+			merchant_name=#{merchant_name},
+			short_name=#{short_name},
+			contact_person=#{contact_person},
+			mobile=#{mobile},
+			address=#{address},
+		    city=#{city},
+		    create_user=#{user},
+		    update_time=now(),
+			remarks=#{remarks},
+			phone=#{phone},
+			website=#{website}
+		WHERE 
+			id = #{id}
+	</update>
+	
+ <!-- 查询 商户的销售单以及出库单的价格和数量 -->
+	<select  id="getMerchantById" parameterType="pd" resultType="pd">
+	SELECT
+	tm.id,
+	tm.merchant_num,
+	tm.merchant_name,
+	tm.city,
+	ta.area_name as cityName,
+	tm.address,
+	tm.website,
+	tm.remarks,
+	tm.contact_person,
+	tm.mobile,
+	suser.USERNAME,
+	tm.update_time,
+	count(tso.id) AS orderCount,
+	sum(tso.order_amount) AS orderSum,
+	sum(tso.paid_amount) as amount,
+	sum(tewo.final_amount)  finalAmount,
+  sum(tewo.final_amount-tewo.paid_amount) as shiji
+
+FROM
+	t_merchant AS tm
+ left join tm_area as ta on ta.id=tm.city
+LEFT JOIN sys_user AS suser ON suser.USER_ID = tm.create_user
+LEFT JOIN t_selling_order AS tso ON tso.merchant_id = tm.id and  tso.checked_state = 3
+LEFT JOIN t_en_warehouse_order AS tewo  ON  tewo.group_num=tso.group_num
+where merchant_id =#{id}
+	</select>
+	
+	
+	<!-- 查询地区 -->
+	 <select id="areaList" parameterType="pd" resultType="pd">
+	 
+	   select * from tm_area;
+	 
+	 </select>
+	 
+	 <!-- 导出商品excel -->
+<select id="excel"  parameterType="page" resultType="pd">
+	select
+	t_merchant.id AS '商户ID',
+	t_merchant.merchant_num AS '商户编号',
+	t_merchant.merchant_name AS '商户名称',
+	t_merchant.short_name AS '名称',
+	t_merchant.contact_person AS '联系人',
+	t_merchant.mobile AS '联系人手机',
+	t_merchant.address AS '地址',
+	ta.area_name  AS '地区'
+		from 
+	t_merchant  as t_merchant 
+	Left join tm_area as ta on ta.id= t_merchant.city
+	where  state = 1 
+	<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			
+	 <if test="pd.searchcriteria==1">
+	 and   (t_merchant.short_name LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   
+			   or t_merchant.merchant_name LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   )
+	</if>
+	<if test="pd.searchcriteria==2">
+	 and  t_merchant.contact_person LIKE  CONCAT('%','${pd.keyword}','%' )  
+	</if>
+	<if test="pd.searchcriteria==3">
+	 and  t_merchant.merchant_num  = #{pd.keyword}
+	</if>
+	</if>
+	<if test="pd.city !=0">
+	 and t_merchant.city=${pd.city}
+	</if>
+	 order by  t_merchant.id desc	 
+</select>
+
+	<select id="findareaname" parameterType="pd" resultType="pd">
+		SELECT
+			ta.*,tm.merchant_name,tm.merchant_num
+		FROM
+			tm_area ta
+		LEFT JOIN t_merchant AS tm ON tm.city =ta.id
+		WHERE tm.merchant_num=#{merchant_num}
+		ORDER BY ta.area_name
+	</select>
+</mapper>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ProductTypeMapper">
+	<resultMap type="ProductType" id="productTypeResultMap" >
+		<id column="id" property="id" jdbcType="BIGINT" />
+		<result column="classify_name" property="classifyName" jdbcType="VARCHAR" />
+		<result column="parent_id" property="parentId" jdbcType="BIGINT" />
+		<result column="level" property="level" jdbcType="INTEGER" />
+	</resultMap>
+	<!-- 根据条件查询商品列表 -->
+	<select id="getProductTypeByParentId" resultMap="productTypeResultMap">
+		SELECT prty.id,
+		       prty.classify_name as classifyName,
+		       prty.level,
+		       prty.parent_id as parentId,
+		 FROM hy_product_type prty  WHERE prty.state=2
+		 AND  prty.parent_id =#{parentId} ;
+	</select>
+	<!-- 根据Id查询商品列表 -->
+	<select id="getProductTypeById" resultMap="productTypeResultMap">
+		SELECT prty.id,
+		       prty.classify_name as classifyName,
+		       prty.level,
+		       prty.parent_id as parentId,
+		       prty.state
+		 FROM hy_product_type prty  WHERE prty.state=2
+		 AND  prty.id =#{id} ;
+	</select>
+	<!-- 通过parent_id获取数据 -->
+	<select id="findByParentId" parameterType="pd" resultMap="productTypeResultMap">
+		select 
+			id,
+			classify_name,
+			level,
+			parent_id
+		from 
+			tp_product_type
+    where 
+    parent_id=#{parent_id}
+	</select>
+	
+	<!-- 通过parent_id获取数据 -->
+	<select id="findByid" parameterType="pd" resultType="pd">
+		select 
+			id,
+			parent_id
+		from 
+			tp_product_type
+    where 
+    id=#{id}
+	</select>
+<!-- 通过分类名称查询分类id -->
+<select id="findNameById" parameterType="String" resultMap="productTypeResultMap">
+select 
+			id AS  id,
+			classify_name AS classifyName,
+			level AS level,
+			parent_id AS parentId
+		from 
+			tp_product_type
+    where 
+    classify_name=#{name}
+</select>
+</mapper>

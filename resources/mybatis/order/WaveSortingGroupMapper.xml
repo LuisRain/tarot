@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="WaveSortingGroupMapper">
+	<resultMap type="WaveSortingGroup" id="WaveSortingGroupResultMap">
+		<id column="waveSortingGroupId" property="waveSortingGroupId"/>
+		<result column="waveSortingGroupNum" property="waveSortingGroupNum"/>
+		<result column="createTime" property="createTime"/>
+		<result column="waveSortingGroupState" property="waveSortingGroupState"/>
+		<result column="waveOrder" property="waveOrder"/>
+		<result column="exOrderIdsString" property="exOrderIdsString"/>
+		<result column="groupNum" property="groupNum"/>
+		<association property="user" javaType="User" resultMap="userResultMap" />
+		<collection property="exos" ofType="EXOrder" resultMap="exoResultMap" />
+	</resultMap>
+	<resultMap id="exoResultMap" type="EXOrder">
+		<result property="id" column="exoId" />
+		<result property="orderNum" column="exoOrderNum" />
+	</resultMap>
+	<resultMap id="userResultMap" type="User">
+		<result property="USER_ID" column="USER_ID" />
+		<result property="NAME" column="NAME" />
+	</resultMap>
+	<select id="waveSortingGroupNewlistPage" parameterType="page" resultMap="WaveSortingGroupResultMap"
+		useCache="false">
+		SELECT 
+			twsg.id waveSortingGroupId,
+			twsg.wave_sorting_num waveSortingGroupNum,
+			twsg.create_time createTime,
+			twsg.wave_sorting_state waveSortingGroupState,
+			twsg.wave_sorting_type,
+			twsg.ex_orderIds_string exOrderIdsString,
+			twsg.wave_order waveOrder,
+			su.USER_ID USER_ID,
+			su.NAME NAME,
+			texo.id texoId,
+		texo.order_num exoOrderNum,
+		texo.group_num groupNum			
+		FROM t_wave_sorting_group twsg
+			LEFT JOIN t_ex_warehouse_order texo ON texo.wave_sorting_num = twsg.wave_sorting_num AND  (texo.order_type=1 OR texo.order_type=2) 
+	  		LEFT JOIN sys_user su ON twsg.user_id = su.USER_ID
+	  	WHERE twsg.wave_sorting_state=1 and twsg.wave_sorting_type=1
+	  	<if test="pd.ck_id!=0">
+				and texo.ck_id=${pd.ck_id}
+		</if>
+     <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			   <if test="pd.searchcriteria==1">
+			    and  twsg.wave_sorting_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    and (su.USERNAME LIKE  CONCAT('%','${pd.keyword}','%' )  OR su.NAME LIKE  CONCAT('%','${pd.keyword}','%' ))
+			   </if> 
+	    </if>
+	      <if test="pd.searchcriteria==2">
+			         <if test="pd.startDate!=null and pd.startDate!=''">
+			          and twsg.create_time &gt;= #{pd.startDate} 
+		            </if>
+	              <if test="pd.endDate!=null and pd.endDate!=''">
+			        and twsg.create_time &lt;= #{pd.endDate} 
+		  </if>
+		</if>
+		GROUP BY twsg.wave_sorting_num
+		 ORDER BY twsg.id DESC
+	</select>
+	<select id="waveSortingGroupNew" parameterType="pd" resultMap="WaveSortingGroupResultMap"
+		useCache="false">
+		SELECT 
+			twsg.id waveSortingGroupId,
+			twsg.wave_sorting_num waveSortingGroupNum,
+			twsg.create_time createTime,
+			twsg.wave_sorting_state waveSortingGroupState,
+			twsg.wave_sorting_type,
+			twsg.ex_orderIds_string exOrderIdsString,
+			twsg.wave_order waveOrder,
+			su.USER_ID USER_ID,
+			su.NAME NAME,
+			texo.id texoId,
+		texo.order_num exoOrderNum,
+		texo.group_num groupNum			
+		FROM t_wave_sorting_group twsg
+			LEFT JOIN t_ex_warehouse_order texo ON texo.wave_sorting_num = twsg.wave_sorting_num AND  (texo.order_type=1 OR texo.order_type=2) 
+	  		LEFT JOIN sys_user su ON twsg.user_id = su.USER_ID
+	  	WHERE twsg.wave_sorting_state=1 and twsg.wave_sorting_type=1
+     <if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			   <if test="searchcriteria==1">
+			    and  twsg.wave_sorting_num LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			    <if test="searchcriteria==3">
+			    and (su.USERNAME LIKE  CONCAT('%','${keyword}','%' )  OR su.NAME LIKE  CONCAT('%','${keyword}','%' ))
+			   </if> 
+	    </if>
+	      <if test="searchcriteria==2">
+			         <if test="startDate!=null and startDate!=''">
+			          and twsg.create_time &gt;= #{startDate} 
+		            </if>
+	              <if test="endDate!=null and endDate!=''">
+			        and twsg.create_time &lt;= #{endDate} 
+		  </if>
+		</if>
+		 ORDER BY twsg.id DESC
+	</select>
+	<!-- 添加 -->
+	<insert id="insert" useGeneratedKeys="true"  parameterType="WaveSortingGroup">
+		insert into t_wave_sorting_group (
+			wave_sorting_num,
+			user_id,
+			wave_sorting_type,
+			wave_sorting_state,
+			ex_orderIds_string,
+			create_time
+		) values (
+			#{waveSortingGroupNum},
+			#{user.USER_ID},
+			#{waveSortingGroupType},
+			#{waveSortingGroupState},
+			#{exOrderIdsString},
+			NOW()
+		);
+	</insert>
+	 <update id="updateWaveSortingState" parameterType="pd">
+	   update t_wave_sorting_group set wave_sorting_state = 2  where id=#{id}
+	 </update>
+	  <update id="updateWaveSortingStateOfwaveSortingGroup" parameterType="pd">
+	   update t_wave_sorting_group set wave_sorting_state = 2  where wave_sorting_num = #{wave_sorting_num};
+	 </update>
+	 <update id="updateWaveSortingOrder" parameterType="pd">
+	   update t_wave_sorting_group set wave_order = #{wave_order}  where wave_sorting_num=#{wave_sorting_num}
+	 </update>
+	 <!-- 
+	
+	<select id="waveSortingGroupOfGift" parameterType="pd" resultMap="WaveSortingGroupResultMap"
+		useCache="false">
+		SELECT 
+			twsg.id waveSortingGroupId,
+			twsg.wave_sorting_num waveSortingGroupNum,
+			twsg.create_time createTime,
+			twsg.waveSortingGroupState,
+			twsg.waveSortingGroupType,
+			su.USER_ID USER_ID,
+			su.NAME NAME,
+			texo.id exoId,
+			texo.order_num exoOrderNum			
+		FROM t_wave_sorting_group twsg
+			LEFT JOIN t_ex_warehouse_order texo ON texo.wave_sorting_num = twsg.wave_sorting_num AND texo.order_type=3
+	  		LEFT JOIN sys_user su ON twsg.user_id = su.USER_ID
+	  	WHERE twsg.wave_sorting_state=1 and twsg.wave_sorting_type=6
+     <if test="keyword != null and keyword != ''">关键词检索
+			   <if test="searchcriteria==1">
+			    and  twsg.wave_sorting_num LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			    <if test="searchcriteria==3">
+			    and (su.USERNAME LIKE  CONCAT('%','${keyword}','%' )  OR su.NAME LIKE  CONCAT('%','${keyword}','%' ))
+			   </if> 
+	    </if>
+	      <if test="searchcriteria==2">
+			         <if test="startDate!=null and startDate!=''">
+			          and twsg.create_time &gt;= #{startDate} 
+		            </if>
+	              <if test="endDate!=null and endDate!=''">
+			        and twsg.create_time &lt;= #{endDate} 
+		  </if>
+		</if>
+		 ORDER BY twsg.id DESC
+	</select>
+	根据批次号查询批次信息
+	<select id="getWaveSortingGroupBywaveSortingGroupNum" parameterType="String" resultType="waveSortingGroup">
+		SELECT 
+			twsg.id,
+			twsg.wave_sorting_num,
+			twsg.create_time,
+			twsg.wave_sorting_state,
+			twsg.wave_sorting_type,
+			su.USERNAME,
+			su.NAME
+		FROM t_wave_sorting_group twsg,sys_user su 
+		WHERE twsg.user_id=su.USER_ID
+			AND twsg.wave_sorting_num = #{waveSortingGroupNum}
+	</select>
+		列表(全部)
+	<select id="inferiWaveSortingGrouplistPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT 
+			twsg.id,
+			twsg.wave_sorting_num,
+			su.USERNAME,
+			su.NAME,
+			twsg.create_time,
+			twsg.wave_sorting_state,
+			texo.id texoId,
+			texo.order_num texo_order_num			
+		   FROM t_wave_sorting_group twsg
+			LEFT JOIN t_ex_warehouse_order texo ON texo.wave_sorting_num = twsg.wave_sorting_num  and texo.order_type= 7  and texo.order_type= 9
+	  		LEFT JOIN sys_user su ON twsg.user_id = su.USER_ID
+	  	WHERE 1=1 
+     <if test="pd.keyword != null and pd.keyword != ''">关键词检索
+			   <if test="pd.searchcriteria==1">
+			    and  twsg.wave_sorting_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    and su.USERNAME LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+			   <if test="searchcriteria==2">
+			         <if test="startDate!=null and startDate!=''">
+			          and twsg.create_time &gt;= #{startDate} 
+		            </if>
+	              <if test="endDate!=null and endDate!=''">
+			        and twsg.create_time &lt;= #{endDate} 
+		  		</if>
+		  	 </if>
+	    </if>
+		  ORDER BY twsg.id DESC
+	</select>
+	删除
+	<delete id="delete" parameterType="pd">
+		delete from t_wave_sorting_group
+		where  
+			wave_sorting_num = #{wave_sorting_num}
+	</delete> -->
+	
+</mapper>

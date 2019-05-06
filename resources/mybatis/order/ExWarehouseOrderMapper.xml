@@ -1,0 +1,1749 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ExWarehouseOrderMapper">
+
+
+	<select id="dcexorderlistexcel" parameterType="pd" resultType="pd">
+		SELECT
+			teoi.quantity,
+			teoi.final_quantity,
+			teoi.gift_quantity,
+			teoi.`comment`,
+			teoi.sale_price,
+			teoi.order_num,
+			teoi.group_num,
+			tm.merchant_name,
+			tm.merchant_num,
+			tpt.bar_code,
+			tpt.product_name,
+			tpt.product_num,
+			tma.area_name,
+			tm.short_name,
+			a.ivt_state,
+			a.order_date
+		FROM
+			t_ex_order_item teoi 
+			LEFT JOIN t_ex_warehouse_order as a on a.order_num=teoi.order_num
+			LEFT JOIN t_merchant as tm ON tm.ID =a.merchant_id
+			LEFT JOIN t_product tpt on tpt.id=teoi.product_id
+			LEFT JOIN tm_area tma on tma.id=tm.city
+		WHERE  1=1
+		
+		<if test="ck_id!=0">
+				and a.ck_id=${ck_id}
+		</if>	
+		<if test="cityid!=null and cityid !=''">
+			AND tm.city IN (${cityid})
+		</if>
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			<if test="searchcriteria==1">
+				AND concat(tm.merchant_name,'^^',tm.merchant_num) like
+				'%${keyword}%'
+			</if>
+			<if test="searchcriteria==3">
+				AND a.order_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==4">
+				AND a.group_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+		</if>
+		<if test="searchcriteria==2">
+			<if test="order_date !=null and order_date !=''"><!-- 登录时间检索 -->
+				AND a.order_date &gt;= #{lastLoginStart}
+				AND a.order_date &lt;=#{lastLoginEnd}
+			</if>
+		</if>
+		<if test="ivt_state !=null and ivt_state !=''">
+			and a.ivt_state='${ivt_state}'
+		</if>
+		AND a.type=2 and a.order_type=1
+		order by convert( tm.short_name USING gbk )
+		COLLATE gbk_chinese_ci ASC
+	</select>
+
+	<select id="findId" parameterType="pd" resultType="pd">
+		select * from t_ex_warehouse_order where id=#{order_num}
+	</select>
+	<!-- 合并订单 -->
+	<update id="updatemergeex" parameterType="pd">
+		UPDATE t_ex_warehouse_order SET ivt_state=5;
+	</update>
+	<update id="updatemergeen" parameterType="pd">
+		UPDATE t_en_warehouse_order SET ivt_state=2;
+	</update>
+	<update id="updatemergegroup" parameterType="pd">
+		UPDATE t_order_group SET state=2;
+	</update>
+	<update id="updatemergewave" parameterType="pd">
+		UPDATE t_wave_sorting_group SET wave_sorting_state=2;
+	</update>
+	
+	<!-- 更改状态 -->
+	<update id="editordergroup" parameterType="pd">
+		UPDATE t_order_group SET state=#{state}  where group_num=#{group_num};
+	</update>
+	<update id="updatewavestate" parameterType="pd">
+		UPDATE t_wave_sorting_group SET wave_sorting_state=#{wave_sorting_state}  where wave_sorting_num=#{wave_sorting_num};
+	</update>
+	
+	<select id="printExOrder" parameterType="java.util.List" resultType="pd">
+		select
+		toi.id,
+		toi.fc_order_num,
+		toi.order_num,
+		tp.bar_code,
+		tp.host_code,
+		tp.product_name,
+		tp.specification,
+		toi.quantity,
+		toi.per_count,
+		toi.total_count,
+		tpmu.unit_name,
+		toi.final_quantity,
+		toi.is_ivt_BK,
+		toi.sale_price,
+		tewo.final_amount,
+		(toi.final_quantity*toi.sale_price) as price,
+		(toi.quantity*toi.sale_price) as price1,
+		toi.comment
+		FROM
+		t_ex_order_item AS toi
+		LEFT JOIN t_ex_warehouse_order tewo ON tewo.order_num=toi.order_num
+		LEFT JOIN t_product AS tp ON tp.id =toi.product_id
+		LEFT JOIN tp_meterage_unit tpmu ON tpmu.id = tp.unit
+		where toi.order_num in
+		<foreach collection="list" item="items" open="(" close=")" separator=",">
+			#{items.order_num}
+		</foreach>
+	
+	</select>
+	
+	<!-- 临时出库列表 -->
+	<select id="exTemplistPage" parameterType="page" resultType="pd">
+		SELECT
+		teo.id,
+		teo.creator,
+		teo.create_time,
+		teo.final_quantity,
+		teo.`comment`,
+		teo.is_ivt_BK,
+		teo.reason,
+		tp.product_name,
+		tp.product_num
+		FROM
+		t_ex_order_item AS teo
+		LEFT JOIN t_product AS tp ON tp.id = teo.product_id
+		WHERE
+		teo.order_num IN (
+		SELECT
+		tewo.order_num
+		FROM
+		t_ex_warehouse_order AS tewo
+		WHERE
+		<if test='pd.type==1'>
+
+			tewo.is_temporary = 1
+		</if>
+
+		<if test='pd.type==2'>
+
+			tewo.is_temporary = 2 and tewo.order_type=4
+		</if>
+
+		)
+
+
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and teo.creator LIKE '%${pd.keyword}%'
+				and teo.creator LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				<if test="pd.order_date!=null and pd.order_date!=''"><!-- 登录时间检索 -->
+					and teo.create_time &gt;= #{pd.lastLoginStart}
+					and teo.create_time &lt;=#{pd.lastLoginEnd}
+				</if>
+			</if>
+			<if test="pd.reason !=''">
+				and teo.reason= #{pd.reason}
+			</if>
+		</if>
+		order by teo.id desc
+	</select>
+	<!-- 新增 -->
+	<insert id="save" parameterType="pd" keyProperty="id">
+		insert into
+		t_ex_warehouse_order(
+		group_num,
+		order_num,
+		checked_state,
+		merchant_id,
+		order_date,
+		manager_name,
+		manager_tel,
+		comment,
+		final_amount,
+		total_svolume,
+		total_weight,
+		paid_amount,
+		is_ivt_order_print,
+		is_temporary,
+		user_id,
+		create_time,
+		is_order_print,
+		ivt_state,
+		order_type
+		) values (
+		#{group_num},
+		#{order_num},
+		#{checked_state},
+		#{merchant_id},
+		now(),
+		#{manager_name},
+		#{manager_tel},
+		#{comment},
+		#{final_amount},
+		#{total_svolume},
+		#{total_weight},
+		#{paid_amount},
+		#{is_ivt_order_print},
+		#{is_temporary},
+		#{user_id},
+		now(),
+		#{is_order_print},
+		#{ivt_state},
+		#{order_type}
+		)
+	</insert>
+
+
+	<!-- 删除 -->
+	<delete id="delete" parameterType="pd">
+		delete from
+		t_ex_warehouse_order
+		where
+		id = #{id}
+	</delete>
+	<!--次品库出库列表 -->
+	<select id="inferiDatalistPage" parameterType="page" resultType="pd">
+		select
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.supplier_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.final_amount,
+		a.total_svolume,
+		a.total_weight,
+		a.wave_sorting_num,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		su.userName,
+		a.id,
+		ts.supplier_name
+		from
+		t_ex_warehouse_order a,tp_supplier ts ,sys_user as su
+		where a.supplier_id=ts.id and su.USER_ID=a.user_id
+		and order_type = 4
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and ts.contact_person LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				<if test="pd.order_date!=null and pd.order_date!=''"><!-- 登录时间检索 -->
+					and a.order_date &gt;= #{pd.lastLoginStart}
+					and a.order_date &lt;=#{pd.lastLoginEnd}
+				</if>
+			</if>
+			<if test="pd.searchcriteria==3">
+				and a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				and a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+	</select>
+
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update t_ex_warehouse_order
+		set
+		checked_state = #{checked_state},
+		order_date = now(),
+		manager_name = #{manager_name},
+		manager_tel = #{manager_tel},
+		comment = #{comment},
+		final_amount = #{final_amount},
+		total_svolume = #{total_svolume},
+		total_weight = #{total_weight},
+		paid_amount = #{paid_amount},
+		is_temporary = #{is_temporary},
+		merchant_id=#{merchant_id},
+		is_order_print = #{is_order_print},
+		ivt_state = #{ivt_state}
+		where
+		id = #{id}
+	</update>
+
+
+	<!-- 修改 -->
+	<update id="editIvt" parameterType="pd">
+		update t_ex_warehouse_order
+		set
+		ivt_state = #{ivt_state},
+		order_date= now()
+		where
+		order_num = #{order_num}
+	</update>
+	<!-- 修改 -->
+	<update id="editEx" parameterType="pd">
+		update t_ex_warehouse_order
+		set
+		final_amount = #{final_amount},
+		total_svolume = #{total_svolume},
+		total_weight = #{total_weight}
+		where
+		id = #{id}
+	</update>
+
+
+
+	<!-- 修改 -->
+	<update id="editState" parameterType="pd">
+		update t_ex_warehouse_order
+		set
+		ivt_state = #{ivtState}
+		where
+		order_num = #{order_num}
+	</update>
+	<!-- 修改 -->
+	<update id="editTotalCount" parameterType="pd">
+		update
+		t_ex_warehouse_order
+		set
+		total_count = #{total_count}
+		where
+		id = #{id};
+	</update>
+
+	<update id="editfws" parameterType="pd">
+
+		update t_ex_warehouse_order
+		set
+		final_amount=#{final_amount},
+		total_svolume=#{total_svolume},
+		total_weight=#{total_weight}
+		where id=#{id};
+
+	</update>
+	<select id="getPerCountOfExwarouseItemByIdsForGift"
+		parameterType="pd" resultType="pd">
+		SELECT
+		texoi.id texoiId,
+		texoi.zy_order_num,
+		texoi.total_count totalCount,
+		texoi.per_count perCount,
+		texo.wave_sorting_num,
+		tm.id mid,
+		tm.merchant_num mnum,
+		tm.merchant_name mname,
+		tp.id pid,
+		tp.product_name pname,
+		tp.product_num pnum,
+		tp.bar_code pbarcode,
+		tp.box_number boxNumber,
+		tp.box_number boxNumber,
+		tp.box_number boxNumber,
+		tp.packing_measurement_id,
+		tppp.product_price,
+		tp.unit,
+		tp.product_num,
+		tpcs.id cargoSpace_id,
+		tpcs.zone zone,
+		tpcs.storey storey,
+		tpcs.storey_num storeyNum,
+		tpmu.id unitId,
+		tpmu.unit_name unitName
+		FROM
+		t_ex_warehouse_order texo,
+		t_ex_order_item texoi,
+		t_merchant tm,
+		t_product_inventory tpi,
+		tp_cargo_space tpcs,
+		tp_meterage_unit tpmu,
+		tp_product_price tppp,
+		t_product tp
+		WHERE
+		texoi.state = 1
+		AND tp.id = texoi.product_id AND tp.is_shelve = 1
+		AND
+		tppp.product_id=tp.id  AND tppp.price_type=2
+		AND
+		texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND
+		texo.is_temporary = 2
+		AND texo.ivt_state = 2
+		AND texo.order_type = 1
+		AND
+		texoi.order_num = texo.order_num
+		AND tm.id = texo.merchant_id
+		AND
+		tpmu.id = tp.unit AND tpmu.STATUS = 1
+		AND tpi.product_id = tp.id
+		AND
+		tp.cargo_space_id = tpcs.id AND warehouse_id=1
+
+		AND tppp.price_type=2 AND tppp.product_id = tp.id
+		AND texo.id IN
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+	</select>
+
+	<!-- 通过id获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select
+		group_num,
+		order_num,
+		checked_state,
+		merchant_id,
+		order_date,
+		manager_name,
+		manager_tel,
+		comment,
+		final_amount,
+		total_svolume,
+		total_weight,
+		paid_amount,
+		is_ivt_order_print,
+		is_temporary,
+		user_id,
+		create_time,
+		is_order_print,
+		ivt_state,
+		id,
+		ck_id
+		from
+		t_ex_warehouse_order
+		where
+		id = #{id}
+	</select>
+
+
+	<!-- 列表 -->
+	<select id="datalistPage" parameterType="page" resultType="pd">
+		SELECT
+			a.group_num,
+			a.order_num,
+			a.checked_state,
+			a.merchant_id,
+			a.order_date,
+			a.wave_sorting_num,
+			a.manager_name,
+			tm.short_name,
+			tm.merchant_name,
+			tm.address,
+			a.manager_tel,
+			a.comment,
+			a.final_amount,
+			a.total_svolume,
+			a.total_weight,
+			a.paid_amount,
+			a.is_ivt_order_print,
+			a.is_temporary,
+			a.user_id,
+			a.create_time,
+			a.is_order_print,
+			a.ivt_state,
+			a.order_type,
+			su.userName,
+			a.id,
+			a.type types,
+			SUM(texio.total_count) total_count,
+			sum(texio.final_quantity) squantity,
+			tpoi.type
+		FROM
+		t_ex_warehouse_order as a
+		LEFT JOIN t_merchant as tm ON tm.ID =a.merchant_id
+		LEFT join sys_user as su on su.USER_ID = a.user_id
+		LEFT JOIN t_ex_order_item texio ON texio.order_num = a.order_num
+		LEFT JOIN t_plan_order_item tpoi on  tpoi.order_num=a.order_num
+		LEFT JOIN tm_area ta ON ta.id=tm.city
+		WHERE  a.is_temporary=2
+		<if test="pd.order_type !=null and pd.order_type !=''">
+			AND a.order_type='${pd.order_type}'
+		</if>
+		<if test="pd.ck_id!=0">
+				and a.ck_id=${pd.ck_id}
+		</if>	
+		<if test="pd.cityid!=null and pd.cityid !=''">
+			AND tm.city IN (${pd.cityid})
+		</if>
+		<if test="pd.ivt_type!=-1">
+			<if test="pd.ivt_type==''">
+				AND tpoi.type is null
+			</if>
+			<if test="pd.ivt_type!='' and pd.ivt_type!=null ">
+				AND tpoi.type=${pd.ivt_type}
+			</if>
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				AND concat(tm.merchant_name,'^^',tm.merchant_num) like
+				'%${pd.keyword}%'
+			</if>
+			<if test="pd.searchcriteria==3">
+				AND a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				AND a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.order_date !=null and pd.order_date !=''"><!-- 登录时间检索 -->
+				AND a.order_date &gt;= #{pd.lastLoginStart}
+				AND a.order_date &lt;=#{pd.lastLoginEnd}
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		<if test="pd.ROLE_ID==32 and pd.ROLE_ID!='' and pd.ROLE_ID!=null">
+			AND ta.area_num=#{pd.USERNAME}
+		</if>
+		AND a.type=2
+		group by a.order_num asc
+		order by convert( tm.short_name USING gbk )
+		COLLATE gbk_chinese_ci ASC
+	</select>
+	
+	<!-- 列表 -->
+	<select id="directlistPage" parameterType="page" resultType="pd">
+		SELECT
+			a.group_num,
+			a.order_num,
+			a.checked_state,
+			a.merchant_id,
+			a.order_date,
+			a.wave_sorting_num,
+			a.manager_name,
+			tm.short_name,
+			tm.merchant_name,
+			tm.address,
+			a.manager_tel,
+			a.comment,
+			a.final_amount,
+			a.total_svolume,
+			a.total_weight,
+			a.paid_amount,
+			a.is_ivt_order_print,
+			a.is_temporary,
+			a.user_id,
+			a.create_time,
+			a.is_order_print,
+			a.ivt_state,
+			a.order_type,
+			su.userName,
+			a.id,
+			a.type types,
+			SUM(texio.total_count) total_count,
+			sum(texio.final_quantity) squantity,
+			(select type from t_plan_order_item tpoi where tpoi.order_num=a.order_num) type
+		FROM
+		t_ex_warehouse_order as a
+		LEFT JOIN t_merchant as tm ON tm.ID =a.merchant_id
+		LEFT join sys_user as su on su.USER_ID = a.user_id
+		LEFT JOIN t_ex_order_item texio ON texio.order_num = a.order_num
+		
+		WHERE  a.is_temporary=2
+		<if test="pd.order_type !=null and pd.order_type !=''">
+			AND a.order_type='${pd.order_type}'
+		</if>
+		<if test="pd.ck_id!=0">
+				and a.ck_id=${pd.ck_id}
+		</if>	
+		<if test="pd.cityid!=null and pd.cityid !=''">
+			AND tm.city IN (${pd.cityid})
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				AND concat(tm.merchant_name,'^^',tm.merchant_num) like
+				'%${pd.keyword}%'
+			</if>
+			<if test="pd.searchcriteria==3">
+				AND a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				AND a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.order_date !=null and pd.order_date !=''"><!-- 登录时间检索 -->
+				AND a.order_date &gt;= #{pd.lastLoginStart}
+				AND a.order_date &lt;=#{pd.lastLoginEnd}
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		AND a.type=1
+		group by a.order_num asc
+		order by convert( tm.short_name USING gbk )
+		COLLATE gbk_chinese_ci ASC
+	</select>
+	
+	<!-- 查找正在分拣的商户信息 -->
+	<select id="datalistForWave" parameterType="String" resultType="pd">
+		SELECT
+			a.order_num,
+			a.merchant_id merchant_id,
+			tm.id,
+			tm.short_name short_name,
+			tm.merchant_name merchant_name,
+			tma.id area_id,
+			tma.area_name area_name,
+			SUM(tei.total_count)total_count
+		FROM
+			t_ex_warehouse_order a,t_merchant tm,tm_area tma,t_ex_order_item tei
+			where tm.id =a.merchant_id and (a.ivt_state=3 OR a.ivt_state=2)
+			and a.wave_sorting_num=#{waveNum}
+			and tma.id=tm.city 
+			and a.order_num = tei.order_num
+      GROUP BY tm.short_name
+			order by convert( tm.short_name USING gbk )
+			COLLATE gbk_chinese_ci ASC
+	</select>
+	
+	<!-- 查找正在分拣的商户信息 -->
+	<select id="sanhuo" parameterType="String" resultType="pd">
+		SELECT SUM(TEOI.per_count) count  FROM t_ex_order_item TEOI WHERE TEOI.order_num IN(SELECT
+	A.order_num
+FROM
+	t_ex_warehouse_order a,
+	t_merchant tm
+WHERE
+	tm.merchant_num = #{id}
+AND tm.id = a.merchant_id
+AND (
+	a.ivt_state = 3
+	OR a.ivt_state = 2
+))
+	</select>
+	
+	
+	<!-- 查找正在分拣的商户信息 仅散货分拣不为零的门店-->
+	<select id="datalistForWaveForPer" parameterType="String" resultType="pd">
+	SELECT
+			a.order_num,
+			a.merchant_id merchant_id,
+			tm.id,
+			tm.short_name short_name,
+			tm.merchant_name merchant_name,
+			tma.id area_id,
+			tma.area_name area_name,
+			SUM(tei.per_count) per_count
+		FROM
+			t_merchant tm,tm_area tma,t_ex_warehouse_order a,t_ex_order_item tei,
+			(SELECT SUM(texoi.per_count)perCountSum,texo.merchant_id as mId   FROM t_ex_warehouse_order texo,t_ex_order_item texoi
+			WHERE texoi.order_num=texo.order_num
+			AND (texo.ivt_state=3 OR texo.ivt_state=2)
+			AND texo.wave_sorting_num=#{waveNum}
+			GROUP BY texo.merchant_id
+			)tmm 
+		WHERE  tm.id =a.merchant_id and (a.ivt_state=3 OR a.ivt_state=2)
+			AND a.wave_sorting_num=#{waveNum}
+			AND tma.id=tm.city 
+			AND tmm.perCountSum>0
+			AND	tmm.mId=a.merchant_id
+			and a.order_num = tei.order_num
+      GROUP BY tm.short_name
+			order by convert( tm.short_name USING gbk )
+			COLLATE gbk_chinese_ci ASC
+	</select>
+	<!-- 列表(全部) -->
+	<select id="listAll" parameterType="pd" resultType="pd">
+		select
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.merchant_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.final_amount,
+		a.wave_sorting_num,
+		a.total_svolume,
+		a.total_weight,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		a.id
+		from
+		t_ex_warehouse_order a
+	</select>
+
+	<!-- 批量删除 -->
+	<delete id="deleteAll" parameterType="String">
+		delete from t_ex_warehouse_order
+		where
+		id in
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+
+
+	<!-- 更新总价信息 -->
+	<update id="updateFinalAmount" parameterType="pd">
+		update t_ex_warehouse_order set final_amount = #{final_amount},
+		total_weight=#{total_weight},
+		total_svolume=#{total_svolume}
+		where id=#{id}
+	</update>
+
+	<!-- 查看出库单详情 -->
+	<select id="getExwarouseById" parameterType="pd" resultType="pd">
+		SELECT
+		teo.id,
+		teo.order_num,
+		teo.checked_state,
+		teo.wave_sorting_num,
+		teo.manager_name,
+		tm.short_name,
+		teo.manager_tel,
+		teo.comment,
+		teo.order_date,
+		teo.create_time,
+		teo.merchant_id,
+		teo.final_amount,
+		teo.amount,
+		teo.total_svolume,
+		teo.total_weight,
+		teo.paid_amount,
+		teo.ivt_state,
+		tm.merchant_name,
+		tm.address,
+		tm.merchant_num,
+		(
+		SELECT
+		sum(gift_quantity)
+		FROM
+		t_ex_order_item
+		WHERE
+		order_num = #{orderNum}
+		) AS gift_quantity,
+		(
+		SELECT
+		sum(final_quantity)
+		FROM
+		t_ex_order_item
+		WHERE
+		order_num = #{orderNum}
+		) AS final_quantity
+		FROM
+		t_ex_warehouse_order AS teo
+		LEFT JOIN t_merchant tm ON tm.id = teo.merchant_id
+		WHERE
+		teo.order_num =#{orderNum}
+	</select>
+	
+	<!-- 直配打印-->
+	<select id="getdirectExwarouseById" parameterType="pd" resultType="pd">
+		SELECT
+		teo.id,
+		teo.order_num,
+		teo.checked_state,
+		teo.wave_sorting_num,
+		teo.manager_name,
+		teo.manager_tel,
+		teo. COMMENT,
+		teo.order_date,
+		teo.create_time,
+		teo.merchant_id,
+		teo.final_amount,
+		teo.amount,
+		teo.total_svolume,
+		teo.total_weight,
+		teo.paid_amount,
+		teo.ivt_state,
+		tm.merchant_name,
+		tm.address,
+		tm.merchant_num,
+		ta.area_name,
+		(
+		SELECT
+		sum(final_quantity)
+		FROM
+		t_ex_order_item
+		WHERE
+		order_num = #{orderNum}
+		) AS final_quantity
+		FROM
+		t_ex_warehouse_order AS teo
+		LEFT JOIN t_merchant tm ON tm.id = teo.merchant_id
+		LEFT JOIN tm_area ta ON ta.id=tm.city
+		WHERE
+		teo.order_num =#{orderNum}
+	</select>
+	<!-- 查看出库单详情 用于导出出库单详情到word-->
+	<select id="getExwarouseByWaveNum" parameterType="String" resultType="pd">
+		SELECT
+			teo.id,
+			teo.order_num,
+			teo.wave_sorting_num,
+			teo.comment,
+			teo.merchant_id,
+			teo.final_amount,
+			teo.amount,
+			teo.total_svolume,
+			teo.total_weight,
+			tm.short_name,
+			tm.mobile,
+			tm.merchant_name,
+			tm.address,
+			tm.merchant_num,
+			(
+			SELECT 
+				sum(final_quantity) FROM t_ex_order_item
+			WHERE
+				order_num = teo.order_num
+			) final_total_quantity,
+			tp.id,
+			tp.product_name,
+			tp.bar_code,
+			tp.specification,
+			teoi.id,
+			teoi.quantity,
+			teoi.final_quantity,
+			teoi.sale_price,
+			teoi.final_quantity*teoi.sale_price totalPrice		
+		FROM
+			t_ex_order_item teoi,t_product tp,t_ex_warehouse_order teo
+			LEFT JOIN t_merchant tm ON tm.id = teo.merchant_id		
+		WHERE
+			(teo.ivt_state=2 OR teo.ivt_state=3)
+			AND teoi.order_num = teo.order_num
+			AND tp.id = teoi.product_id
+			AND teo.wave_sorting_num =#{waveNum}
+		ORDER BY teo.merchant_id ASC;
+	</select>
+
+	<select id="getExwarouseItemByIds" parameterType="pd"
+		resultType="pd">
+		SELECT
+			texoi.id texoiId,
+			texoi.zy_order_num,
+			sum(texoi.final_quantity+texoi.gift_quantity) fq,
+			texo.wave_sorting_num,
+			tm.id mid,
+			tm.merchant_num mnum,
+			tm.short_name mname,
+			tp.id pid,
+			tp.product_name pname,
+			tp.product_num pnum,
+			tp.bar_code pbarcode,
+			tp.box_number boxNumber,
+			tp.packing_measurement_id,
+			tppp.product_price,
+			tp.unit,
+			tp.product_num,
+			tpcs.id cargoSpace_id,
+			tpcs.zone zone,
+			tpcs.storey storey,
+			tpcs.storey_num storeyNum,
+			tpmu.id unitId,
+			tpmu.unit_name unitName
+		FROM
+			t_ex_warehouse_order texo
+			left join 	t_ex_order_item texoi on  texoi.order_num = texo.order_num
+			left join t_merchant tm on  tm.id = texo.merchant_id
+			left join t_product tp on tp.id = texoi.product_id 
+			<!-- left join t_product_inventory tpi on  tpi.product_id = tp.id AND tpi.warehouse_id = 1 -->
+			left join tp_cargo_space tpcs on tp.cargo_space_id = tpcs.id
+			left join tp_meterage_unit tpmu on tpmu.id = tp.unit AND tpmu. STATUS = 1
+			left join tp_product_price tppp on tppp.product_id = tp.id  AND tppp.price_type = 2
+		WHERE
+			texoi.state = 1
+		AND texo.is_temporary = 2
+		AND texo.ivt_state = 11
+		AND texo.order_type = 1
+		AND texo.id IN
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+		group by texoi.order_num,texoi.product_id
+		ORDER BY
+		tpcs.zone ASC,
+		tpcs.storey ASC,
+		tpcs.storey_num ASC,
+		CONVERT (tp.product_name USING gbk) ASC,
+		CONVERT (tm.short_name USING gbk) ASC
+	</select>
+	<select id="getExwarouseItemByWaveNum" parameterType="pd"
+		resultType="pd">
+		SELECT
+		texoi.id texoiId,
+		texoi.zy_order_num,
+		texoi.final_quantity fq,
+		texoi.per_count per_count,
+		texoi.total_count total_count,
+		tm.id mid,
+		tm.merchant_num mnum,
+		tm.short_name mname,
+		tp.id pid,
+		tp.product_name pname,
+		tp.product_num pnum,
+		tp.bar_code pbarcode,
+		tp.box_number boxNumber,
+		tp.packing_measurement_id,
+		tppp.product_price,
+		tp.unit,
+		tp.product_num,
+		tpcs.id cargoSpace_id,
+		tpcs.zone zone,
+		tpcs.storey storey,
+		tpcs.storey_num storeyNum,
+		tpmu.id unitId,
+		tpmu.unit_name unitName
+		FROM
+		t_ex_warehouse_order texo,
+		t_ex_order_item texoi,
+		t_merchant tm,
+		t_product_inventory tpi,
+		tp_cargo_space tpcs,
+		tp_meterage_unit tpmu,
+		tp_product_price tppp,
+		t_product tp
+		WHERE
+		texoi.state = 1
+		AND tp.id = texoi.product_id AND tp.is_shelve = 1
+		AND
+		texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND
+		texo.is_temporary = 2
+		AND texo.ivt_state = 3
+		AND texo.order_type = 1
+		AND
+		texoi.order_num = texo.order_num
+		AND tm.id = texo.merchant_id
+		AND
+		tpmu.id = tp.unit AND tpmu.STATUS = 1
+		AND tpi.product_id = tp.id
+		AND
+		tp.cargo_space_id = tpcs.id AND warehouse_id=1
+
+		AND tppp.price_type=2 AND tppp.product_id = tp.id
+		AND texo.wave_sorting_num =  #{waveNum}
+		ORDER BY
+		tpcs.zone ASC,
+		tpcs.storey ASC,
+		tpcs.storey_num ASC,
+		CONVERT (tp.product_name USING gbk) ASC,
+		CONVERT (tm.short_name USING gbk) ASC
+	</select>
+	<select id="getPerCountOfExwarouseItemByIds" parameterType="pd"
+		resultType="pd">
+		SELECT
+		texoi.id texoiId,
+		texoi.zy_order_num,
+		texoi.total_count totalCount,
+		texoi.per_count perCount,
+		texo.wave_sorting_num,
+		tm.id mid,
+		tm.merchant_num mnum,
+		tm.merchant_name mname,
+		tp.id pid,
+		tp.product_name pname,
+		tp.product_num pnum,
+		tp.bar_code pbarcode,
+		tp.box_number boxNumber,
+		tp.packing_measurement_id,
+		tppp.product_price,
+		tp.unit,
+		tp.product_num,
+		tpcs.id cargoSpace_id,
+		tpcs.zone zone,
+		tpcs.storey storey,
+		tpcs.storey_num storeyNum,
+		tpmu.id unitId,
+		tpmu.unit_name unitName
+		FROM
+		t_ex_warehouse_order texo,
+		t_ex_order_item texoi,
+		t_merchant tm,
+		t_product_inventory tpi,
+		tp_cargo_space tpcs,
+		tp_meterage_unit tpmu,
+		tp_product_price tppp,
+		t_product tp
+		WHERE
+		texoi.state = 1
+		AND tp.id = texoi.product_id AND tp.is_shelve = 1
+		AND
+		tppp.product_id=tp.id AND tppp.price_type=2
+		AND
+		texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND
+		texo.is_temporary = 2
+		AND texo.ivt_state = 3
+		AND texo.order_type = 1
+		AND
+		texoi.order_num = texo.order_num
+		AND tm.id = texo.merchant_id
+		AND
+		tpmu.id = tp.unit AND tpmu.STATUS = 1
+		AND tpi.product_id = tp.id
+		AND
+		tp.cargo_space_id = tpcs.id AND warehouse_id=1
+	
+		AND tppp.price_type=2 AND tppp.product_id = tp.id
+		AND texo.id IN
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+		ORDER BY
+		tpcs.zone ASC,
+		tpcs.storey ASC,
+		tpcs.storey_num ASC,
+		CONVERT (tp.product_name USING gbk) ASC,
+		CONVERT (tm.short_name USING gbk) ASC
+	</select>
+	<select id="getPerCountOfExwarouseItemByIds2" parameterType="pd" resultType="pd">
+		SELECT
+		texoi.id texoiId,
+		texoi.zy_order_num,
+		texoi.total_count totalCount,
+		texoi.per_count perCount,
+		texo.wave_sorting_num,
+		tm.id mid,
+		tm.merchant_num mnum,
+		tm.short_name mname,
+		tp.id pid,
+		tp.product_name pname,
+		tp.product_num pnum,
+		tp.bar_code pbarcode,
+		tp.box_number boxNumber,
+		tp.packing_measurement_id,
+		tppp.product_price,
+		tp.unit,
+		tp.product_num,
+		tpcs.id cargoSpace_id,
+		tpcs.zone zone,
+		tpcs.storey storey,
+		tpcs.storey_num storeyNum,
+		tpmu.id unitId,
+		tpmu.unit_name unitName
+		FROM
+		t_ex_warehouse_order texo,
+		t_ex_order_item texoi,
+		t_merchant tm,
+		tp_cargo_space tpcs,
+		tp_meterage_unit tpmu,
+		tp_product_price tppp,
+		t_product tp
+		WHERE
+		texoi.state = 1
+		AND tp.id = texoi.product_id 
+		AND
+		tppp.product_id=tp.id  AND tppp.price_type=2
+		AND
+		texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND
+		texo.is_temporary = 2
+		AND texo.ivt_state = 2
+		AND texo.order_type = 1
+		AND
+		texoi.order_num = texo.order_num
+		AND tm.id = texo.merchant_id
+		AND
+		tpmu.id = tp.unit AND tpmu.STATUS = 1
+		AND
+		tp.cargo_space_id = tpcs.id
+		<if test="ck_id!=0">
+			AND texo.ck_id=#{ck_id}
+		</if>	
+		AND texo.id IN
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+		<!-- (#{DATA_IDS}) -->
+		ORDER BY
+		tpcs.zone ASC,
+		tpcs.storey ASC,
+		tpcs.storey_num ASC,
+		CONVERT (tp.product_name USING gbk) ASC,
+		CONVERT (tm.short_name USING gbk) ASC
+	</select>
+	<select id="getProductInfoById" parameterType="pd" resultType="pd">
+		SELECT
+		tp.id id,
+		tp.product_name productName,
+		tp.bar_code barCode,
+		tp.box_number boxNumber,
+		tpcs.id cargoSpace_id,
+		tpcs.zone zone,
+		tpcs.storey storey,
+		tpcs.storey_num storeyNum,
+		tpmu.id unitId,
+		tpmu.unit_name unitName
+		FROM
+		t_product_inventory tpi,
+		tp_cargo_space tpcs,
+		tp_meterage_unit tpmu,
+		t_product tp
+		WHERE
+		tpmu.id = tp.unit AND tpmu.STATUS = 1
+		AND tpi.product_id = tp.id
+		AND tp.cargo_space_id = tpcs.id
+		<if test="pid !=null and pid !=''">
+			AND tp.id = #{pid};
+		</if>
+	</select>
+	<!-- 根据入库单信息 查询相关出库单条目信息，用于显示波次操作出库单，显示并最终打印 -->
+	<select id="getExwarouseByIds" parameterType="pd"
+		resultMap="productToWaveResultMap">
+		SELECT
+		tp.id id,
+		tp.product_name productName,
+		tp.bar_code barCode,
+		tp.box_number boxNumber,
+		tm.id merchant_id,
+		tm.merchant_name merchantName,
+		texop.fq productCount,
+		tpcs.id cargoSpace_id,
+		tpcs.zone zone,
+		tpcs.storey storey,
+		tpcs.storey_num storeyNum,
+		tpmu.id unitId,
+		tpmu.unit_name unitName
+		FROM
+		t_product_inventory tpi,
+		tp_cargo_space tpcs,
+		tp_meterage_unit tpmu,
+		t_product tp,
+		t_merchant tm,
+		(
+		SELECT
+		texo.merchant_id mid,
+		texoi.id texoiId,
+		texoi.final_quantity fq,
+		texoi.product_id pid
+		FROM
+		t_ex_warehouse_order texo,
+		t_ex_order_item texoi
+		WHERE
+		texoi.state = 1
+		AND texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND
+		texo.is_temporary = 2
+		AND texo.ivt_state = 11
+		AND texo.order_type = 1
+		AND
+		texoi.order_num = texo.order_num
+		AND texo.id IN
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+		) texop
+		WHERE
+		tp.id = texop.pid
+		AND tm.id = texop.mid
+		AND tpi.product_id = tp.id
+		AND tpcs.id = tp.cargo_space_id
+		AND tpmu.id = tp.unit
+		AND tpmu. STATUS = 1;
+	</select>
+
+
+
+	<!-- 根据入库单信息 查询相关出库单条目信息，用于显示波次操作出库单，显示并最终打印 -->
+	<select id="getExwarouseItemForProductByIds" parameterType="pd"
+		resultMap="productToWaveResultMap">
+		SELECT
+		tp.id id,
+		tp.product_name productName,
+		tp.bar_code barCode,
+		tp.box_number boxNumber,
+		tm.id merchant_id,
+		tm.merchant_name merchantName,
+		texop.fq productCount,
+		tpcs.id cargoSpace_id,
+		tpcs.zone zone,
+		tpcs.storey storey,
+		tpcs.storey_num storeyNum,
+		tpmu.id unitId,
+		tpmu.unit_name unitName
+		FROM
+		t_product_inventory tpi,
+		tp_cargo_space tpcs,
+		tp_meterage_unit tpmu,
+		t_product tp,
+		t_merchant tm,
+		(
+		SELECT
+		texo.merchant_id mid,
+		texoi.id texoiId,
+		texoi.final_quantity fq,
+		texoi.product_id pid
+		FROM
+		t_ex_warehouse_order texo,
+		t_ex_order_item texoi
+		WHERE
+		texoi.state = 1
+		AND texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND
+		texo.is_temporary = 2
+		AND texo.ivt_state = 11
+		AND texo.order_type = 1
+		AND
+		texoi.order_num = texo.order_num
+		AND texo.id = #{texoId}
+		) texop
+		WHERE
+		tp.id = texop.pid
+		AND tm.id = texop.mid
+		AND tpi.product_id = tp.id
+		AND tpcs.id = tp.cargo_space_id
+		AND tpmu.id = tp.unit
+		AND tpmu. STATUS = 1;
+	</select>
+
+	<resultMap type="com.hy.entity.product.Product" id="productToWaveResultMap">
+		<id column="id" property="id" />
+		<result column="barCode" property="barCode" />
+		<result column="productName" property="productName" />
+		<result column="productNum" property="productNum" />
+		<result column="boxNumber" property="boxNumber" />
+		<association property="cargoSpace" javaType="CargoSpace"
+			resultMap="cargoSpaceResultMap" />
+		<association property="measurementUnit" javaType="MeasurementUnit"
+			resultMap="measurementUnitResultMap" />
+		<collection property="merchants" ofType="Merchant"
+			resultMap="merchantResultMap" />
+	</resultMap>
+	<resultMap id="cargoSpaceResultMap" type="CargoSpace">
+		<result property="id" column="cargoSpaceId" />
+		<result property="zone" column="zone" />
+		<result property="storey" column="storey" />
+		<result property="storeyNum" column="storeyNum" />
+	</resultMap>
+	<resultMap id="measurementUnitResultMap" type="MeasurementUnit">
+		<result property="id" column="unitId" />
+		<result property="unitName" column="unitName" />
+	</resultMap>
+	<resultMap id="merchantResultMap" type="Merchant">
+		<result property="id" column="merchantId" />
+		<result property="merchantName" column="merchantName" />
+		<result property="productCount" column="productCount" />
+	</resultMap>
+
+	<select id="StorageExWarehouselistPage" parameterType="page"
+		resultType="pd">
+		SELECT
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.merchant_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.wave_sorting_num,
+		a. COMMENT,
+		a.final_amount,
+		a.total_svolume,
+		a.total_weight,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		su.userName,
+		a.id,
+		tm.merchant_name
+		FROM
+		t_ex_warehouse_order a,
+		t_merchant tm,
+		sys_user AS su
+		where a.merchant_id=tm.id and su.USER_ID=a.user_id
+		and order_type=2
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and tm.contact_person LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				<if test="pd.order_date!=null and pd.order_date!=''"><!-- 登录时间检索 -->
+					and a.order_date &gt;= #{pd.lastLoginStart}
+					and a.order_date &lt;=#{pd.lastLoginEnd}
+				</if>
+			</if>
+			<if test="pd.searchcriteria==3">
+				and a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				and a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		ORDER BY a.id DESC
+	</select>
+
+
+	<!-- 列表 -->
+	<select id="purchaseReturnlistPage" parameterType="page"
+		resultType="pd">
+		select
+		a.order_num,
+		a.merchant_id,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.order_date,
+		a.is_ivt_order_print,
+		a.wave_sorting_num,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		a.order_type,
+		su.userName,
+		a.id,
+		ts.merchant_name
+		from
+		t_ex_warehouse_order a,t_merchant ts ,sys_user as su
+
+		where a.merchant_id=ts.id and su.USER_ID=a.user_id
+		and order_type = 5
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and a.order_num='${pd.keyword}'
+			</if>
+			<if test="pd.searchcriteria==2">
+				<if test="pd.order_date!=null and pd.order_date!=''"><!-- 登录时间检索 -->
+					and a.order_date &gt;= #{pd.lastLoginStart}
+					and a.order_date &lt;=#{pd.lastLoginEnd}
+				</if>
+			</if>
+
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		ORDER BY a.id DESC
+	</select>
+
+	<select id="getExwarouseByorderNum" parameterType="pd"
+		resultType="pd">
+		SELECT
+		*
+		FROM
+		t_ex_warehouse_order as texwo
+		where texwo.order_num=#{ordernum}
+	</select>
+	<select id="getExwarouseItemByIdsForGift" parameterType="pd"
+		resultType="pd">
+		SELECT
+		texoi.id texoiId,
+		texoi.zy_order_num,
+		texoi.final_quantity fq,
+		texoi.oprationtime oprationtime,
+		texo.wave_sorting_num,
+		tm.id mid,
+		tm.merchant_num mnum,
+		tm.merchant_name mname,
+		tp.id pid,
+		tp.product_name pname,
+		tp.product_num pnum,
+		tp.bar_code pbarcode,
+		tp.box_number boxNumber,
+		tp.packing_measurement_id,
+		tp.unit,
+		tp.product_num,
+		tpcs.id cargoSpace_id,
+		tpcs.zone zone,
+		tpcs.storey storey,
+		tpcs.storey_num storeyNum,
+		tpmu.id unitId,
+		tpmu.unit_name unitName
+		FROM
+		t_ex_warehouse_order texo,
+		t_ex_order_item texoi,
+		t_merchant tm,
+		t_product_inventory tpi,
+		tp_cargo_space tpcs,
+		tp_meterage_unit tpmu,
+		t_product tp
+		WHERE
+		texoi.state = 1
+		AND tp.id = texoi.product_id AND tp.is_shelve = 1
+		AND
+		texo.group_num IS NOT NULL
+		AND texoi.group_num IS NOT NULL
+		AND
+		texo.is_temporary = 2
+		AND texo.ivt_state = 11
+		AND texo.order_type = 3
+		AND
+		texoi.order_num = texo.order_num
+		AND tm.id = texo.merchant_id
+		AND
+		tpmu.id = tp.unit AND tpmu.STATUS = 1
+		AND tpi.product_id = tp.id
+		AND
+		tp.cargo_space_id = tpcs.id AND warehouse_id=1
+		AND texo.id IN
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+	</select>
+	<delete id="deleteExOrderItemByOrderNum" parameterType="pd">
+		DELETE FROM t_ex_order_item where t_ex_order_item.order_num=#{pd.order_num}
+	</delete>
+
+
+	<select id="dataCeterExOrderlistPage" resultType="pd"
+		parameterType="page">
+		SELECT
+		tewo.id,
+		tewo.create_time,
+		tewo.order_date,
+		tewo.order_num,
+		tm.merchant_name,
+		tewo.final_amount,
+		tewo.`comment`
+		FROM
+		t_ex_warehouse_order AS tewo
+		LEFT JOIN t_merchant
+		AS tm ON tewo.merchant_id = tm.id
+		where 1=1
+		<if test="pd.ivt_state!=null and pd.ivt_state!='' and pd.ivt_state>0">
+			AND tewo.ivt_state=#{pd.ivt_state}
+		</if>
+		<if test="pd.StartDate!=null and pd.StartDate!=''">
+			and tewo.create_time &gt;= #{pd.StartDate}
+		</if>
+		<if test="pd.EndDate !=null and pd.EndDate!=''">
+			and tewo.create_time &lt;= #{pd.EndDate}
+		</if>
+		<if test="pd.merchant_name !=null and pd.merchant_name!=''">
+			AND tm.merchant_name like CONCAT('%','${pd.merchant_name}','%' )
+		</if>
+	</select>
+	
+	<!-- 列表 -->
+	<select id="fenCangdatalistPage" parameterType="page" resultType="pd">
+		SELECT
+			a.group_num,
+			a.order_num,
+			a.checked_state,
+			a.merchant_id,
+			tpc.`name`,
+			a.ck_id,
+			a.order_date,
+			a.wave_sorting_num,
+			a.manager_name,
+			tm.short_name,
+			tm.merchant_name,
+			a.manager_tel,
+			a.comment,
+			a.final_amount,
+			a.total_svolume,
+			a.total_weight,
+			a.paid_amount,
+			a.is_ivt_order_print,
+			a.is_temporary,
+			a.user_id,
+			a.create_time,
+			a.is_order_print,
+			a.ivt_state,
+			a.order_type,
+			su.userName,
+			a.id,
+			SUM(texio.total_count) total_count,
+			sum(texio.final_quantity) squantity,
+			(select type from t_plan_order_item tpoi where tpoi.order_num=a.order_num) type
+		FROM
+		t_ex_warehouse_order as a
+		LEFT JOIN t_merchant as tm ON tm.ID =a.merchant_id
+		LEFT JOIN tp_warehouse_ck tpc ON tpc.id=a.ck_id
+		LEFT join sys_user as su on su.USER_ID = a.user_id
+		LEFT JOIN t_ex_order_item texio ON texio.order_num = a.order_num
+		
+		WHERE  a.is_temporary=2
+		<if test="pd.order_type !=null and pd.order_type !=''">
+			AND a.order_type='${pd.order_type}'
+		</if>
+		<if test="pd.ck_id!=0">
+				and a.ck_id=${pd.ck_id}
+		</if>	
+		<if test="pd.cityid!=null and pd.cityid !=''">
+			AND tm.city IN (${pd.cityid})
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				AND concat(tm.merchant_name,'^^',tm.merchant_num) like
+				'%${pd.keyword}%'
+			</if>
+			<if test="pd.searchcriteria==3">
+				AND a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				AND a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.order_date !=null and pd.order_date !=''"><!-- 登录时间检索 -->
+				AND a.order_date &gt;= #{pd.lastLoginStart}
+				AND a.order_date &lt;=#{pd.lastLoginEnd}
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		group by a.order_num asc
+		
+	</select>
+	
+	<select id="getExwarousegetId" parameterType="pd" resultType="pd">
+		SELECT
+		teo.id,
+		teo.order_num,
+		teo.checked_state,
+		teo.wave_sorting_num,
+		teo.manager_name,
+		teo.manager_tel,
+		teo.comment,
+		teo.order_date,
+		teo.create_time,
+		teo.merchant_id,
+		teo.final_amount,
+		teo.amount,
+		teo.total_svolume,
+		teo.total_weight,
+		teo.paid_amount,
+		teo.ivt_state,
+		tm.merchant_name,
+		tm.address,
+		tm.merchant_num,
+		(
+		SELECT
+		sum(final_quantity)
+		FROM
+		t_ex_order_item
+		WHERE
+		order_num = #{order_num}
+		) AS final_quantity
+		FROM
+		t_ex_warehouse_order AS teo
+		LEFT JOIN t_merchant tm ON tm.id = teo.merchant_id
+		WHERE
+		teo.order_num =#{order_num}
+	</select>
+	
+	<!-- 直配出库单导出 -->
+	<select id="exorderlistexcel" parameterType="pd" resultType="pd">
+		SELECT
+			teoi.quantity,
+			teoi.final_quantity,
+			teoi.gift_quantity,
+			teoi.`comment`,
+			teoi.sale_price,
+			teoi.order_num,
+			teoi.group_num,
+			tm.merchant_name,
+			tm.merchant_num,
+			tpt.bar_code,
+			tpt.product_name,
+			tpt.product_num,
+			tma.area_name,
+			tm.short_name,
+			a.ivt_state,
+			a.order_date
+		FROM
+			t_ex_order_item teoi 
+			LEFT JOIN t_ex_warehouse_order as a on a.order_num=teoi.order_num
+			LEFT JOIN t_merchant as tm ON tm.ID =a.merchant_id
+			LEFT JOIN t_product tpt on tpt.id=teoi.product_id
+			LEFT JOIN tm_area tma on tma.id=tm.city
+		WHERE  1=1
+		
+		<if test="ck_id!=0">
+				and a.ck_id=${ck_id}
+		</if>	
+		<if test="cityid!=null and cityid !=''">
+			AND tm.city IN (${cityid})
+		</if>
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			<if test="searchcriteria==1">
+				AND concat(merchant_name,'^^',merchant_num) like
+				'%${keyword}%'
+			</if>
+			<if test="searchcriteria==3">
+				AND a.order_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==4">
+				AND a.group_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+		</if>
+		<if test="searchcriteria==2">
+			<if test="order_date !=null and order_date !=''"><!-- 登录时间检索 -->
+				AND a.order_date &gt;= #{lastLoginStart}
+				AND a.order_date &lt;=#{lastLoginEnd}
+			</if>
+		</if>
+		<if test="ivt_state !=null and ivt_state !=''">
+			and a.ivt_state='${ivt_state}'
+		</if>
+		AND a.type=1 and a.order_type=1
+		order by convert( tm.short_name USING gbk )
+		COLLATE gbk_chinese_ci ASC
+	</select>
+	
+	<!-- 图表显示 -->
+	<select id="chart" parameterType="pd" resultType="pd">
+		SELECT
+			substring(tewo.group_num,4) riqi,
+			tewo.group_num,
+			tewo.order_num,
+			tewo.order_date,
+			SUM(teoi.final_quantity) final_quantity,
+			SUM(teoi.sale_price*teoi.final_quantity) sumprice
+			FROM
+				t_ex_warehouse_order tewo
+			LEFT JOIN t_ex_order_item teoi ON tewo.order_num = teoi.order_num
+		WHERE 
+			teoi.final_quantity != ""
+			<if test="group_num!=null and group_num !=''">
+			AND tewo.group_num LIKE '%${group_num}%'
+			</if>
+			AND tewo.order_type=1
+			AND tewo.type=2
+			GROUP BY tewo.group_num
+	
+	</select>
+	
+	<select id="charts" parameterType="pd" resultType="pd">
+		SELECT
+			substring(tewo.group_num,4) riqi,
+			tewo.group_num,
+			tewo.order_num,
+			tewo.order_date,
+			SUM(teoi.final_quantity) final_quantity,
+			SUM(teoi.sale_price*teoi.final_quantity) sumprice
+			FROM
+				t_ex_warehouse_order tewo
+			LEFT JOIN t_ex_order_item teoi ON tewo.order_num = teoi.order_num
+		WHERE 
+			teoi.final_quantity != ""
+			<if test="group_num!=null and group_num !=''">
+			AND tewo.group_num LIKE '%${group_num}%'
+			</if>
+			AND tewo.order_type=1
+			AND tewo.type=2
+			GROUP BY tewo.group_num
+	
+	</select>
+	
+	<!-- 导出excel -->
+	<select id="exportexcel" parameterType="pd" resultType="pd">
+		SELECT teoi.id,tm.merchant_num '站点编码',tm.merchant_name '站点名称',tm.short_name '站简称',tma.area_name '分公司名称',
+		tp.product_num '商品编码',tp.bar_code '商品条形码',tp.product_name '商品名称',tp.box_number '箱装数',
+		tppt.classify_name '商品类型',tpmu.unit_name '单位',tppp.product_price '商品零售价',teoi.quantity '订货数量',
+		teoi.final_quantity '出货数量',teoi.gift_quantity '赠品',
+		teoi.purchase_price*teoi.final_quantity '出库金额',
+		teoi.purchase_price*teoi.final_quantity '订单总金额',
+		tps.supplier_num '供应商编码',
+		tps.supplier_name '供应商名称'
+		FROM t_ex_order_item teoi
+		LEFT JOIN t_ex_warehouse_order teo ON teo.order_num=teoi.order_num
+		LEFT JOIN t_merchant tm ON teo.merchant_id=tm.id
+		LEFT JOIN tm_area tma ON tm.city=tma.id
+		LEFT JOIN t_product tp ON teoi.product_id=tp.id
+		LEFT JOIN tp_product_type tppt ON tp.product_type_id=tppt.id
+		LEFT JOIN tp_meterage_unit tpmu ON tpmu.id=tp.unit
+		LEFT JOIN tp_product_price tppp ON tp.id=tppp.product_id AND tppp.price_type=2
+		LEFT JOIN tp_product_price tppp1 ON tp.id=tppp1.product_id AND tppp1.price_type=1
+		LEFT JOIN tp_supplier tps ON tppp1.relation_id = tps.id
+		WHERE
+		1 = 1
+		<if test="group_num!=null and group_num!=''">
+			AND teoi.group_num like '%${group_num}%'
+		</if>
+		ORDER BY teo.merchant_id
+	</select>
+	
+	<select id="findrate" parameterType="pd" resultType="pd">
+		SELECT
+			COUNT(*) a,
+			a.group_num,
+			a.order_num,
+			a.create_time,
+			tm.merchant_num,
+			tm.city,
+			COUNT(tm.city) sumcity
+		FROM
+			t_ex_warehouse_order AS a
+		LEFT JOIN t_merchant AS tm ON tm.ID = a.merchant_id
+		WHERE
+			a.is_temporary = 2
+		AND a.order_type = 1
+		AND a.type = 2
+		<if test="group_num!=null and group_num!=''">
+			AND a.group_num like '%${group_num}%'
+		</if>
+		GROUP BY
+			a.group_num,
+		tm.merchant_num
+		ORDER BY
+			a.group_num;
+	</select>
+	
+	<select id="sumcity" parameterType="pd" resultType="pd">
+		SELECT
+			COUNT(*) sumcity
+		FROM
+			t_ex_warehouse_order AS a
+		LEFT JOIN t_merchant AS tm ON tm.ID = a.merchant_id
+		LEFT JOIN tm_area ta ON ta.id = tm.city
+		WHERE
+			a.is_temporary = 2
+		AND a.order_type = 1
+		AND a.type = 2
+		<if test="group_num!=null and group_num!=''">
+			AND a.group_num like '%${group_num}%'
+		</if>
+	</select>
+</mapper>

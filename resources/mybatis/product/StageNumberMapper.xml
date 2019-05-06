@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="StageNumberMapper">
+	<!-- 列表(全部) -->
+	<select id="stageNumberlistPage" parameterType="page"
+		resultType="pd" useCache="false">
+		select
+		t.id,
+		t.stagenumber
+		from
+		t_stagenumber t
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			where
+			<if test="pd.searchcriteria==1">
+				t.stagenumber LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+	</select>
+
+	<select id="stageNumberlist" parameterType="pd"
+		resultType="pd" useCache="false">
+		select
+		id,
+		stagenumber
+		from
+		t_stagenumber
+	</select>
+
+	<!-- 删除用户 -->
+	<delete id="deletestagenumber" parameterType="pd" flushCache="false">
+		delete from t_stagenumber
+		where
+		id = #{id};
+	</delete>
+
+	<!-- 新增 -->
+	<insert id="save" parameterType="pd">
+		insert into t_stagenumber(
+		stagenumber
+		) values (
+		#{stagenumber}
+		)
+	</insert>
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select
+		id,
+		stagenumber
+		from
+		t_stagenumber
+		where
+		id = #{id}
+	</select>
+	<!-- 通过name获取数据 -->
+	<select id="findByName" parameterType="pd" resultType="pd">
+		SELECT
+		id,
+		stagenumber
+		FROM
+		t_stagenumber
+		WHERE
+		stagenumber=#{stagenumber}
+	</select>
+
+
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update t_stagenumber
+		set
+		stagenumber = #{stagenumber}
+		where
+		id = #{id}
+	</update>
+
+</mapper>

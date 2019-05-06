@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="jssl">
+	<update id="qrxg" parameterType="pd">
+		
+		update t_ex_warehouse_order 
+
+		set confirmed=1
+
+		where  order_type=1 AND type=2 and ivt_state=1
+		and group_num=#{group_num}
+	</update>
+
+	<select id="Exconfirmed" parameterType="pd" resultType="pd">
+		SELECT
+			a.group_num,
+			a.order_num,
+			a.checked_state,
+			a.merchant_id,
+			a.order_date,
+			a.wave_sorting_num,
+			a.manager_name,
+			tm.short_name,
+			tm.merchant_name,
+			tm.address,
+			a.manager_tel,
+			a.comment,
+			a.final_amount,
+			a.total_svolume,
+			a.total_weight,
+			a.paid_amount,
+			a.is_ivt_order_print,
+			a.is_temporary,
+			a.user_id,
+			a.create_time,
+			a.is_order_print,
+			a.ivt_state,
+			a.order_type,
+			su.userName,
+			a.id,
+			a.type types,
+			SUM(texio.total_count) total_count,
+			sum(texio.final_quantity) squantity,
+			(select type from t_plan_order_item tpoi where tpoi.order_num=a.order_num) type
+		FROM
+		t_ex_warehouse_order as a
+		LEFT JOIN t_merchant as tm ON tm.ID =a.merchant_id
+		LEFT join sys_user as su on su.USER_ID = a.user_id
+		LEFT JOIN t_ex_order_item texio ON texio.order_num = a.order_num
+		
+		WHERE   a.order_type=1 AND a.type=2 and a.ivt_state=1
+		and a.group_num=#{group_num}
+		and a.confirmed=0
+		group by a.order_num asc
+		order by convert( tm.short_name USING gbk )
+		COLLATE gbk_chinese_ci ASC
+	</select>
+	<select id="findproductinventory" parameterType="pd" resultType="pd" useCache="false">
+		SELECT
+			product_id,
+			sum(product_quantity) quantity
+		FROM
+			t_product_inventory
+			
+		where warehouse_id=1
+		GROUP BY
+			product_id
+	</select>
+
+
+	<!-- 查询是否有直配订单 -->
+	<select id="findexzporder" parameterType="pd" resultType="pd"  useCache="false">
+		select * from t_ex_warehouse_order
+		where type=1 and order_type=1 and ivt_state=1
+	</select>
+	
+		<!-- 查询未审核直配订单商品总数 -->
+	<select id="findexzporderitem" parameterType="pd" resultType="pd"  useCache="false">
+		select sum(teoi.final_quantity) final_quantity,sum(gift_quantity) gift_quantity,teoi.product_id
+
+		from t_ex_order_item teoi 
+		
+		LEFT JOIN t_ex_warehouse_order tewo on tewo.order_num=teoi.order_num
+		
+		where tewo.type=1 and tewo.order_type=1  and tewo.ivt_state=1 
+		and teoi.group_num LIKE CONCAT('%','${groupNum}','%' )
+		group by teoi.product_id 
+	</select>
+	
+	<select id="findexgroupnum" parameterType="pd" resultType="pd"  useCache="false">
+		select group_num from t_ex_warehouse_order 
+
+		where ivt_state=1  and order_type=1 and type=2
+		
+		group by group_num 
+	
+	</select>
+
+
+	<select id="selectsellingOrder" parameterType="pd" resultType="pd"  useCache="false">
+		select * from t_selling_order
+		where
+			group_num=#{group_num}
+		<if test="checked_state!='' and checked_state!=null">
+			and  order_type=1 and type=2 and checked_state=1 
+		</if>
+		 
+	</select>
+
+	<select id="selectpurorder" parameterType="pd" resultType="pd" useCache="false">
+		select * from t_purchase_order
+		where
+			group_num=#{group_num}
+		<if test="checked_state!='' and checked_state!=null">
+			and checked_state=1
+		</if>
+		 
+	
+	</select>
+
+
+	<select id="selectexorder" parameterType="pd" resultType="pd"  useCache="false">
+		select * from t_ex_warehouse_order tewo
+			
+		where 
+		tewo.group_num=#{group_num}
+		<if test="checked_state!='' and checked_state!=null">
+		 	and tewo.ivt_state!=1 and tewo.type=2 and tewo.order_type=1
+		</if>
+	</select>
+
+
+
+		<select id="selectenorder" parameterType="pd" resultType="pd"  useCache="false">
+		select * from t_en_warehouse_order
+		where 
+			group_num=#{group_num}
+		<if test="checked_state!='' and checked_state!=null">
+			and checked_state=1 and order_type=1
+		</if>
+	
+	</select>
+	
+	<!-- 查询非活动商品 -->
+	<select id="findnotactivity" parameterType="pd" resultType="pd"  useCache="false">
+		select teoi.* from t_ex_order_item teoi
+		left join t_ex_warehouse_order tewo on tewo.order_num=teoi.order_num 
+		where teoi.product_id not in (
+		
+		select product_id from t_product_activity where type=1 and state=1
+		
+		) and teoi.group_num=#{group_num} 
+		and tewo.ivt_state=1  and tewo.order_type=1 and tewo.type=2
+		order by teoi.final_quantity desc
+	
+	</select>
+
+	
+	<select id="findproductactivity" parameterType="pd" resultType="pd"  useCache="false">
+		select * from t_product_activity
+		
+		where type=1 and state=1
+	</select>
+	
+	<!-- 查询某一批次的入库单数量 -->
+	<select id="findenitemquantity"  parameterType="pd" resultType="pd"  useCache="false">
+		select sum(teoi.quantity) quantity,sum(teoi.final_quantity) final_quantity,teoi.product_id,	
+		ROUND(sum(teoi.final_quantity) / sum(teoi.quantity), 2 ) quantity_dhl,
+		sum(teoi.gift_quantity) gift_quantity,teoi.group_num
+		from t_en_order_item  teoi
+		LEFT JOIN t_en_warehouse_order tewo on tewo.order_num=teoi.order_num
+		where teoi.group_num=#{group_num} and tewo.order_type=1
+		group by product_id
+	</select>
+	
+	<!-- 获取某一达标商品的赠品数量 -->
+	<select id="findexitemproduct"  parameterType="pd" resultType="pd"  useCache="false">
+		select teoi.* from t_ex_order_item teoi
+		left join t_ex_warehouse_order tewo on tewo.order_num=teoi.order_num 
+		where teoi.product_id=${product_activity} and teoi.order_num=#{order_num}
+		and tewo.ivt_state=1  and tewo.order_type=1 and tewo.type=2
+		<!-- and teoi.gift_quantity!=0 -->
+	</select>
+	
+	<!-- <select id="findexitemgift"  parameterType="pd" resultType="pd" flushCache="false">
+		select teoi.* from t_ex_order_item teoi
+		left join t_ex_warehouse_order tewo on tewo.order_num=teoi.order_num 
+		where teoi.product_id=${product_id} and teoi.group_num=#{group_num} and teoi.gift_quantity!=0
+		and tewo.ivt_state=1  and tewo.order_type=1 and tewo.type=2
+		order by teoi.final_quantity DESC 
+	</select> -->
+	
+	
+	<select id="findexitem"  parameterType="pd" resultType="pd"  useCache="false">
+		select teoi.* from t_ex_order_item teoi
+		left join t_ex_warehouse_order tewo on tewo.order_num=teoi.order_num 
+		where teoi.product_id=${product_id} <!-- and teoi.group_num=#{group_num}  and teoi.final_quantity!=0 -->
+		and tewo.ivt_state=1  and tewo.order_type=1 and tewo.type=2
+		order by teoi.final_quantity DESC 
+	</select>
+	
+	<update id="updategift" parameterType="pd" >
+		update t_ex_order_item
+		set gift_quantity=${gift_quantity}
+		where id=${id}
+	</update>
+	
+	
+	
+	<update id="updateexquantity" parameterType="pd" >
+		update t_ex_order_item
+		set final_quantity=${final_quantity}
+		where id=${id}
+	</update>
+	
+	<update id="updatesellgift" parameterType="pd" >
+		update t_selling_order_item
+		set gift_quantity=${gift_quantity}
+		where order_num=#{orderNum} and product_id=${product_id} 
+	</update>
+	
+	<update id="updatesellquantity" parameterType="pd" >
+		update t_selling_order_item
+		set final_quantity=${final_quantity}
+		where order_num=#{orderNum} and product_id=${product_id} 
+	</update>
+	
+	
+	
+
+</mapper>

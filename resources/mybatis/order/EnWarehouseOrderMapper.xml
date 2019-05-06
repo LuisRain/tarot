@@ -1,0 +1,874 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="EnWarehouseOrderMapper">
+
+
+	<!-- 新增 -->
+	<insert id="save" parameterType="pd" keyProperty="id">
+		insert
+		into
+		t_en_warehouse_order(
+		group_num,
+		order_num,
+		checked_state,
+		supplier_id,
+		order_date,
+		manager_name,
+		manager_tel,
+		comment,
+		final_amount,
+		total_svolume,
+		total_weight,
+		paid_amount,
+		is_ivt_order_print,
+		is_temporary,
+		user_id,
+		create_time,
+		is_order_print,
+		ivt_state,
+		order_type,
+		ck_id
+		) values (
+		#{group_num},
+		#{order_num},
+		#{checked_state},
+		#{supplier_id},
+		#{order_date},
+		#{manager_name},
+		#{manager_tel},
+		#{comment},
+		#{final_amount},
+		#{total_svolume},
+		#{total_weight},
+		#{paid_amount},
+		#{is_ivt_order_print},
+		#{is_temporary},
+		#{user_id},
+		now(),
+		#{is_order_print},
+		#{ivt_state},
+		#{order_type},
+		${ck_id}
+		)
+	</insert>
+
+
+	<!-- 删除 -->
+	<delete id="delete" parameterType="pd">
+		delete from
+		t_en_warehouse_order
+		where
+		id = #{id}
+	</delete>
+
+
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update t_en_warehouse_order
+		set
+		checked_state = #{checked_state},
+		order_date = now(),
+		manager_name =
+		#{manager_name},
+		manager_tel = #{manager_tel},
+		supplier_id=#{supplier_id},
+		comment = #{comment},
+		final_amount =
+		#{final_amount},
+		total_svolume = #{total_svolume},
+		total_weight =
+		#{total_weight},
+		paid_amount = #{paid_amount},
+		is_temporary =
+		#{is_temporary},
+		is_order_print = #{is_order_print},
+		ivt_state =
+		#{ivt_state},
+		id = id
+		where
+		id = #{id}
+	</update>
+	<!-- 通过id获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select
+		group_num,
+		order_num,
+		checked_state,
+		supplier_id,
+		order_date,
+		manager_name,
+		manager_tel,
+		comment,
+		final_amount,
+		total_svolume,
+		total_weight,
+		paid_amount,
+		is_ivt_order_print,
+		is_temporary,
+		user_id,
+		create_time,
+		is_order_print,
+		ivt_state,
+		id,
+		ck_id
+		from
+		t_en_warehouse_order
+		where
+		id = #{id}
+	</select>
+
+
+	<!-- 列表 -->
+	<select id="dataAlllistPage" parameterType="page" resultType="pd">
+		select
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.supplier_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.final_amount,
+		a.total_svolume,
+		a.total_weight,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		a.order_type,
+		su.userName,
+		a.id,
+		ts.supplier_name,
+		tpck.name ckname
+		from
+		t_en_warehouse_order a
+		left join tp_supplier ts on a.supplier_id=ts.id
+		left join sys_user as su on su.USER_ID=a.user_id
+		left join
+		tp_warehouse_ck tpck on tpck.id=a.ck_id
+		where
+		a.order_type=1
+
+		<if test="pd.ck_id!=0">
+			and a.ck_id=${pd.ck_id}
+		</if>
+		<if test="pd.order_type !=null and pd.order_type !=''">
+			and a.order_type='${pd.order_type}'
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and ts.supplier_name LIKE CONCAT('%','${pd.keyword}','%'
+				)
+			</if>
+			<if test="pd.searchcriteria==3">
+				and a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				and a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.order_date !=null and pd.order_date !=''"><!-- 登录时间检索 -->
+				and a.order_date &gt;= #{pd.lastLoginStart}
+				and a.order_date
+				&lt;=#{pd.lastLoginEnd}
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		ORDER BY a.id DESC
+	</select>
+
+	<!-- 列表 -->
+	<select id="dataAllOfGiftlistPage" parameterType="page"
+		resultType="pd">
+		select
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.supplier_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.final_amount,
+		a.total_svolume,
+		a.total_weight,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		a.order_type,
+		su.userName,
+		a.id,
+		ts.supplier_name
+		from
+		t_en_warehouse_order a,tp_supplier ts ,sys_user as su
+
+		where
+		a.order_type=3
+		and a.supplier_id=ts.id and su.USER_ID=a.user_id
+		<if test="pd.order_type !=null and pd.order_type !=''">
+			and a.order_type='${pd.order_type}'
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and ts.supplier_name LIKE CONCAT('%','${pd.keyword}','%'
+				)
+			</if>
+			<if test="pd.searchcriteria==2">
+				<if test="pd.order_date!=null and pd.order_date!=''"><!-- 登录时间检索 -->
+					and a.order_date &gt;= #{pd.lastLoginStart}
+					and a.order_date
+					&lt;=#{pd.lastLoginEnd}
+				</if>
+			</if>
+			<if test="pd.searchcriteria==3">
+				and a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				and a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		ORDER BY a.id DESC
+	</select>
+
+
+	<!--次品库入库列表 -->
+	<select id="inferiDatalistPage" parameterType="page" resultType="pd">
+		select
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.supplier_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.final_amount,
+		a.total_svolume,
+		a.total_weight,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		su.userName,
+		a.id,
+		ts.supplier_name
+		from
+		t_en_warehouse_order
+		a,tp_supplier ts ,sys_user as su
+
+		where a.supplier_id=ts.id and
+		su.USER_ID=a.user_id
+		and order_type = 4
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and ts.contact_person LIKE CONCAT('%','${pd.keyword}','%'
+				)
+			</if>
+			<if test="pd.searchcriteria==2">
+				<if test="pd.order_date!=null and pd.order_date!=''"><!-- 登录时间检索 -->
+					and a.order_date &gt;= #{pd.lastLoginStart}
+					and a.order_date
+					&lt;=#{pd.lastLoginEnd}
+				</if>
+			</if>
+			<if test="pd.searchcriteria==3">
+				and a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				and a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+	</select>
+
+	<!-- 存储库 入库单管理 列表 -->
+	<select id="StorageWarehouselistPage" parameterType="page"
+		resultType="pd">
+		select
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.supplier_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.final_amount,
+		a.total_svolume,
+		a.total_weight,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		su.userName,
+		a.id,
+		ts.supplier_name
+		from
+		t_en_warehouse_order
+		a,tp_supplier ts ,sys_user as su
+		where a.supplier_id=ts.id and
+		su.USER_ID=a.user_id
+		and order_type=2 <!-- 入库单类型，1=周转库入库单，2=储存库入库单；3=赠品入库单；4=次品库入库单；5=销售退货入库单；6=储存库移库至周转库；7=次品库移库至周转库；8=储存库移库至次品库；9=次品库移库至周转库； -->
+
+		<if test="pd.ck_id!=0">
+			and a.ck_id=${pd.ck_id}
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and ts.contact_person LIKE CONCAT('%','${pd.keyword}','%'
+				)
+			</if>
+			<if test="pd.searchcriteria==2">
+				<if test="pd.order_date!=null and pd.order_date!=''"><!-- 登录时间检索 -->
+					and a.order_date &gt;= #{pd.lastLoginStart}
+					and a.order_date
+					&lt;=#{pd.lastLoginEnd}
+				</if>
+			</if>
+			<if test="pd.searchcriteria==3">
+				and a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				and a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		ORDER BY a.id DESC
+	</select>
+
+
+
+
+
+	<!-- 列表(全部) -->
+	<select id="listAll" parameterType="pd" resultType="pd">
+		select
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.supplier_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.final_amount,
+		a.total_svolume,
+		a.total_weight,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		a.id
+		from
+		t_en_warehouse_order a
+	</select>
+
+	<!-- 批量删除 -->
+	<delete id="deleteAll" parameterType="String">
+		delete from t_en_warehouse_order
+		where
+		id in
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+
+
+	<!-- 临时入库列表 -->
+
+	<select id="enTemplistPage" parameterType="page" resultType="pd">
+		SELECT
+		teo.id,
+		teo.creator,
+		teo.create_time,
+		teo.final_quantity,
+		teo.`comment`,
+		teo.is_ivt_BK,
+		teo.reason,
+		tp.product_name,
+		tp.product_num
+		FROM
+		t_en_order_item AS teo
+		LEFT JOIN t_product AS tp ON tp.id =
+		teo.product_id
+		WHERE
+		teo.order_num IN (
+		SELECT
+		tewo.order_num
+		FROM
+		t_en_warehouse_order AS tewo
+		WHERE
+		<if test='pd.type==1'>
+
+			tewo.is_temporary = 1
+			)
+		</if>
+
+		<if test='pd.type==2'>
+
+			tewo.is_temporary = 2 and tewo.order_type=4
+			)
+		</if>
+
+
+		<if test="pd.keyword!=null and pd.keyword!=''">
+			<if test="pd.searchcriteria==1">
+				and teo.creator LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.order_date!=null and pd.order_date!=''">
+				and teo.create_time &gt;= #{pd.lastLoginStart}
+				and
+				teo.create_time &lt;=#{pd.lastLoginEnd}
+			</if>
+		</if>
+		<if test="pd.reason !=''">
+			and teo.reason= #{pd.reason}
+		</if>
+
+
+	</select>
+
+
+	<!-- 读取excel 导出数据 -->
+	<select id="getexcel" parameterType="String" resultType="pd">
+		SELECT
+		tew.order_num,
+		tew.supplier_id,
+		tew.`comment`,
+		tew.order_date,
+		tew.manager_name,
+		tew.manager_tel,
+		tp.bar_code,
+		tp.host_code,
+		tp.product_name as product_name,
+		tp.specification as specification,
+		tp.unit,
+		tp.bar_code as bar_code,
+		tp.host_code as host_code,
+		teoi.purchase_price,
+		teoi.quantity,
+		teoi.final_quantity,
+		tpt.classify_name,
+		ts.supplier_name,
+		ts.address,
+		teoi.purchase_price *
+		teoi.quantity as subtotal
+
+		FROM
+		t_en_warehouse_order AS tew
+		LEFT JOIN
+		t_en_order_item AS teoi ON teoi.order_num = tew.order_num
+		LEFT JOIN
+		t_product as tp ON tp.id=teoi.product_id
+		LEFT JOIN tp_product_type AS
+		tpy ON tp.id=tpy.id
+		LEFT JOIN tp_product_type as tpt ON
+		tp.product_type_id=tpt.id
+		LEFT JOIN tp_supplier As ts on
+		tew.supplier_id=ts.id
+		where tew.id=#{id}
+	</select>
+
+	<!-- 读取excel 获取总额 出库数量总计 -->
+	<select id="getexcelcount" parameterType="String" resultType="pd">
+		SELECT
+		SUM(teoi.purchase_price * teoi.quantity) as 总额,
+		SUM(teoi.quantity) as 入库合计
+		FROM
+		t_en_warehouse_order AS tew
+		LEFT JOIN
+		t_en_order_item AS teoi ON teoi.order_num = tew.order_num
+		where
+		tew.id=#{id}
+	</select>
+
+	<!-- 查看入库单信息 -->
+
+	<select id="getEnwarouseById" parameterType="pd" resultType="pd">
+		SELECT
+		teo.id,
+		teo.group_num,
+		teo.order_num,
+		teo.order_date,
+		teo.checked_state,
+		ts.contact_person,
+		ts.contact_person_mobile,
+		teo.`comment`,
+		total_svolume,
+		teo.total_weight,
+		teo.paid_amount,
+		teo.ivt_state,
+		teo.create_time,
+		ts.supplier_name,
+		ts.supplier_num,
+		teo.final_amount,
+		teo.order_date,
+		teo.amount,
+		ts.address,
+		teo.supplier_id,
+		(
+		SELECT
+		sum(quantity)
+		FROM
+		t_en_order_item
+		WHERE
+		order_num = #{orderNum}
+		) AS
+		quantity,
+		(
+		SELECT
+		sum(final_quantity)
+		FROM
+		t_en_order_item
+		WHERE
+		order_num = #{orderNum}
+		) AS
+		final_quantity,
+		(
+		SELECT
+		sum(purchase_price * quantity)
+		FROM
+		t_en_order_item
+		WHERE
+		order_num = #{orderNum}
+		) AS
+		price1,
+		(
+		SELECT
+		sum(purchase_price * final_quantity)
+		FROM
+		t_en_order_item
+		WHERE
+		order_num = #{orderNum}
+		) AS
+		price,
+		(
+		SELECT
+		sum(gift_quantity)
+		FROM
+		t_en_order_item
+		WHERE
+		order_num = #{orderNum}
+		) AS
+		gift_quantity
+		FROM
+		t_en_warehouse_order AS teo
+		LEFT JOIN tp_supplier AS
+		ts ON ts.id = teo.supplier_id
+		WHERE
+		teo.order_num = #{orderNum}
+
+	</select>
+
+	<!-- 更新总价信息 -->
+	<update id="updateFinalAmount" parameterType="pd">
+		update
+		t_en_warehouse_order set final_amount = #{final_amount},
+		total_weight=#{total_weight},
+		total_svolume=#{total_svolume}
+		where
+		id=#{id}
+	</update>
+
+
+	<select id="getEnwarouseByorderNum" parameterType="pd"
+		resultType="pd">
+		SELECT
+		*
+		FROM
+		t_en_warehouse_order as tenwo
+		where
+		tenwo.order_num=#{ordernum}
+	</select>
+	<!-- 列表 -->
+	<select id="purchaseReturnlistPage" parameterType="page"
+		resultType="pd">
+		select
+		a.order_num,
+		a.supplier_id,
+		a.manager_name,
+		a.manager_tel,
+		a.order_date,
+		a.comment,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		a.order_type,
+		su.userName,
+		a.id,
+		ts.supplier_name
+		from
+		t_en_warehouse_order a,tp_supplier ts
+		,sys_user as su
+		where a.supplier_id=ts.id and su.USER_ID=a.user_id
+		and
+		order_type = 6
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and a.order_num = ${pd.keyword}
+			</if>
+			<if test="pd.searchcriteria==2">
+				<if test="pd.order_date!=null and pd.order_date!=''"><!-- 登录时间检索 -->
+					and a.order_date &gt;= #{pd.lastLoginStart}
+					and a.order_date
+					&lt;=#{pd.lastLoginEnd}
+				</if>
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		ORDER BY a.id DESC
+	</select>
+
+	<delete id="deleteEnOrderItemByOrderNum" parameterType="pd">
+		DELETE
+		FROM t_en_order_item where t_en_order_item.order_num=#{order_num}
+	</delete>
+
+
+	<select id="dataCeterEnOrderlistPage" resultType="pd"
+		parameterType="page">
+
+		SELECT
+		tewo.id,
+		tewo.create_time,
+		tewo.order_date,
+		tewo.order_num,
+		ts.supplier_name,
+		tewo.final_amount,
+		tewo.`comment`
+		FROM
+		t_en_warehouse_order AS tewo
+		LEFT
+		JOIN tp_supplier AS ts ON
+		tewo.supplier_id = ts.id
+
+		where 1=1
+		<if test="pd.ivt_state!=null and pd.ivt_state!='' and pd.ivt_state>0">
+			AND tewo.ivt_state=#{pd.ivt_state}
+		</if>
+		<if test="pd.StartDate!=null and pd.StartDate!=''">
+			and tewo.create_time &gt;= #{pd.StartDate}
+		</if>
+		<if test="pd.EndDate !=null and pd.EndDate!=''">
+			and tewo.create_time &lt;= #{pd.EndDate}
+		</if>
+		<if test="pd.supplier_name !=null and pd.supplier_name!=''">
+			AND ts.supplier_name like
+			CONCAT('%','${pd.supplier_name}','%' )
+		</if>
+	</select>
+
+	<!-- 列表 -->
+	<select id="fencanglistPage" parameterType="page" resultType="pd">
+		select
+		a.group_num,
+		a.order_num,
+		a.checked_state,
+		a.supplier_id,
+		a.order_date,
+		a.manager_name,
+		a.manager_tel,
+		a.comment,
+		a.final_amount,
+		a.total_svolume,
+		a.total_weight,
+		a.paid_amount,
+		a.is_ivt_order_print,
+		a.is_temporary,
+		a.user_id,
+		a.create_time,
+		a.is_order_print,
+		a.ivt_state,
+		a.order_type,
+		su.userName,
+		a.id,
+		ts.supplier_name,
+		tpck.name ckname
+		from
+		t_en_warehouse_order a
+		left join tp_supplier ts on a.supplier_id=ts.id
+		left join sys_user as su on su.USER_ID=a.user_id
+		left join
+		tp_warehouse_ck tpck on tpck.id=a.ck_id
+		where
+		a.order_type=1
+
+		<if test="pd.ck_id!=0">
+			and a.ck_id=${pd.ck_id}
+		</if>
+		<if test="pd.order_type !=null and pd.order_type !=''">
+			and a.order_type='${pd.order_type}'
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and ts.supplier_name LIKE CONCAT('%','${pd.keyword}','%'
+				)
+			</if>
+			<if test="pd.searchcriteria==3">
+				and a.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				and a.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.order_date !=null and pd.order_date !=''"><!-- 登录时间检索 -->
+				and a.order_date &gt;= #{pd.lastLoginStart}
+				and a.order_date
+				&lt;=#{pd.lastLoginEnd}
+			</if>
+		</if>
+		<if test="pd.ivt_state !=null and pd.ivt_state !=''">
+			and a.ivt_state='${pd.ivt_state}'
+		</if>
+		ORDER BY a.id DESC
+	</select>
+<select id="sellingOrderlistexcel" parameterType="pd" resultType="pd">
+		SELECT
+		tewo.id,
+		tewo.group_num,
+		tewo.order_num,
+		tewo.checked_state,
+		ts.supplier_name,
+		ts.supplier_num,
+		tewo.create_time,
+		tewo.ivt_state,
+		teoi.quantity,
+		teoi.final_quantity,
+		teoi.gift_quantity,
+		teoi.`comment`,
+		tpt.product_name,
+		tpt.product_num,
+		tpt.bar_code,
+		teoi.purchase_price,
+		tewo.order_date,
+		teoi.product_time
+		FROM
+		t_en_order_item teoi 	
+		LEFT JOIN	t_en_warehouse_order tewo on tewo.order_num=teoi.order_num
+		LEFT JOIN tp_supplier ts ON tewo.supplier_id = ts.id
+		LEFT JOIN t_product tpt on tpt.id=teoi.product_id
+		WHERE
+		tewo.order_type=1
+		<if test="ck_id!=0">
+			and tewo.ck_id=${ck_id}
+		</if>
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			<if test="searchcriteria==1">
+				and ts.supplier_name LIKE CONCAT('%','${keyword}','%')
+			</if>
+			<if test="searchcriteria==3">
+				and tewo.order_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==4">
+				and tewo.group_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+		</if>
+		<if test="searchcriteria==2">
+			<if test="order_date !=null and order_date !=''"><!-- 登录时间检索 -->
+				and tewo.order_date &gt;= #{lastLoginStart}
+				and tewo.order_date &lt;=#{lastLoginEnd}
+			</if>
+		</if>
+		<if test="checked_state !=null and checked_state !=''">
+			and tewo.checked_state='${checked_state}'
+		</if>
+		ORDER BY tewo.id DESC
+	</select>
+	<select id="sellingOrderlistPage" parameterType="page" resultType="pd">
+		SELECT
+		tewo.id,
+		tewo.group_num,
+		tewo.order_num,
+		tewo.checked_state,
+		ts.supplier_name,
+		ts.contact_person,
+		ts.contact_person_mobile,
+		tewo.`comment`,
+		su.USERNAME,
+		twc.`name`,
+		tewo.create_time,
+		tewo.ivt_state
+		FROM
+		t_en_warehouse_order tewo
+		LEFT JOIN tp_supplier ts ON
+		tewo.supplier_id = ts.id
+		LEFT JOIN tp_warehouse_ck twc ON tewo.ck_id =
+		twc.id
+		LEFT JOIN sys_user su ON su.USER_ID=tewo.user_id
+		WHERE
+		tewo.order_type=1
+		<if test="pd.ck_id!=0">
+			and tewo.ck_id=${pd.ck_id}
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and ts.supplier_name LIKE CONCAT('%','${pd.keyword}','%')
+			</if>
+			<if test="pd.searchcriteria==3">
+				and tewo.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				and tewo.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.order_date !=null and pd.order_date !=''"><!-- 登录时间检索 -->
+				and tewo.order_date &gt;= #{pd.lastLoginStart}
+				and tewo.order_date
+				&lt;=#{pd.lastLoginEnd}
+			</if>
+		</if>
+		<if test="pd.checked_state !=null and pd.checked_state !=''">
+			and tewo.checked_state='${pd.checked_state}'
+		</if>
+		ORDER BY tewo.id DESC
+	</select>
+
+	<update id="updateenordergroupnum" parameterType="String">
+	UPDATE t_en_warehouse_order tewo,(
+	SELECT SUM(svolume) ss,SUM(weight) sw,SUM(quantity) sq,SUM(final_quantity) sf,SUM(purchase_price*final_quantity) sa FROM t_en_order_item WHERE group_num=#{group_num}) a
+	SET
+	tewo.total_svolume=a.ss,
+	tewo.total_weight=a.sw,
+	tewo.amount=a.sa,
+	tewo.final_amount=a.sa
+	WHERE tewo.group_num=#{group_num}
+	</update>
+
+</mapper>

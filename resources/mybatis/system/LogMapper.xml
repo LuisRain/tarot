@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="LogMapper" >
+  <resultMap id="LogInfoResultMap" type="sysLog" >
+    <id column="id" property="id" jdbcType="BIGINT" />
+       <result column="op_model" property="opModel" jdbcType="CHAR" />
+        <result column="result" property="result" jdbcType="CHAR" />
+         <result column="oper_name" property="operName" jdbcType="CHAR" />
+          <result column="create_date" property="createDate" jdbcType="CHAR" />
+           <result column="login_ip" property="ip" jdbcType="CHAR" />
+  </resultMap>
+   <!-- 添加日志信息 -->
+     <insert id="saveLog" parameterType="pd" >
+    INSERT INTO sys_log 
+    (op_model, result, oper_name,login_ip, create_date)
+    VALUES 
+    (#{op_model}, #{result}, #{oper_name}, #{login_ip}, NOW())
+   </insert>
+   <!-- 日志信息分页显示 -->
+  <select id="sysLoglistPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT 
+			 sl.id,
+			 sl.op_model, 
+			 sl.result, 
+			 sl.oper_name, 
+			 sl.create_date,
+			 sl.login_ip
+		FROM sys_log sl
+		WHERE  1=1 
+		   <if test="pd.operName!=null and pd.operName!=''">
+		   AND sl.oper_name LIKE  CONCAT(CONCAT('%', #{pd.operName}),'%')  
+		   </if>
+		   <if test="pd.startDate!=null and pd.startDate!='' and pd.endDate!=null and pd.endDate!=''">
+		   AND sl.create_date between  #{pd.startDate} and #{pd.endDate}  
+		   </if>
+		ORDER BY sl.id DESC
+	</select>
+	<!-- 日志列表(全部) -->
+	<select id="listAllSysLoglistPage" parameterType="pd" resultType="pd" useCache="false">
+		SELECT 
+			 sl.id,
+			 sl.op_model, 
+			 sl.result, 
+			 sl.oper_name, 
+			 sl.create_date,
+			 sl.login_ip
+		FROM sys_log sl
+		ORDER BY sl.id DESC
+	</select>
+	
+	<select id="listAllSysLog" parameterType="pd" resultType="pd" useCache="false">
+		SELECT 
+			 sl.id,
+			 sl.op_model, 
+			 sl.result, 
+			 sl.oper_name, 
+			 sl.create_date,
+			 sl.login_ip
+		FROM sys_log sl
+		WHERE  1=1 
+		   <if test="operName!=null and operName!=''">
+		   AND sl.oper_name LIKE  CONCAT(CONCAT('%', #{operName}),'%')  
+		   </if>
+		   <if test="startDate!=null and startDate!='' and endDate!=null and endDate!=''">
+		   AND sl.create_date between  #{startDate} and #{endDate}  
+		   </if>
+		ORDER BY sl.id DESC
+	</select>
+</mapper>

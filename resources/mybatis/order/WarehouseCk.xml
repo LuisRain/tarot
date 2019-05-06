@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="WarehouseCkMapper">
+<!-- 扫描当前现有二级仓库 -->
+<select id="findWarehouseCkInventory" parameterType="page" resultType="pd" >
+	select twc.*,tso.merchant_type_id
+	from tp_warehouse_ck twc
+	left join tm_merchant_type tmt on tmt.ck_id=twc.parent_id
+	left join t_selling_order tso on tmt.id=tso.merchant_type_id and tso.order_type=2 and tso.checked_state>=6
+	where 
+	twc.is_auto=1
+	
+	group  by twc.id
+     
+	</select>
+	
+	<!-- 扫描当前现有库存数 -->
+<select id="findCKProductInventory" parameterType="page" resultType="pd" >
+	select tpt.id,tpt.product_name,tpt.bar_code,if(sum(tpi.product_quantity) is null,0,sum(tpi.product_quantity)) product_quantity,tpm.max_stock_num,
+	tpp.product_price sale_price,tmt.ck_id,purprice.product_price purchase_price,purprice.relation_id supplier_id
+	from tp_warehouse_ck twc
+	LEFT JOIN tm_merchant_type tmt on tmt.ck_id= twc.id
+	left join t_product_max tpm on  tpm.ck_id=twc.id
+	left join t_product tpt on tpt.id=tpm.product_id
+	LEFT JOIN t_product_inventory  tpi on tpi.merchant_type_id=tmt.id and tpi.product_id=tpt.id
+	left join tp_product_price tpp on tpp.product_id =tpt.id and tpp.price_type=2 and tpp.relation_id=tmt.id
+	left join tp_product_price purprice on purprice.product_id =tpt.id and purprice.price_type=1 and purprice.supplier_priority=1
+	where 
+	twc.id=#{id}
+	group by twc.id,tpt.id
+	order by tpt.id DESC
+
+	</select>
+	<!-- 查询仓库分级列表 -->
+	<select id="findwarehouseck"  resultType="pd" >
+		select * from tp_warehouse_ck
+
+	</select>
+	
+	
+</mapper>

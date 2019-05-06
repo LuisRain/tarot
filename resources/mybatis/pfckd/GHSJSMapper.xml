@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ghsjsMapper">
+
+	
+	<!-- 通过门店编码和门店简称获取数据 -->
+	<select id="findGHSJSlistPage" parameterType="page" resultType="pd" >
+		select
+				t1.supplier_id ,
+				s.supplier_name,sum(t.final_quantity * t.purchase_price) TotalPrice 
+				,t.comment
+		from t_en_order_item t 
+		LEFT JOIN t_en_warehouse_order t1 on t1.order_num = t.order_num
+		LEFT JOIN tp_supplier s on s.id = t1.supplier_id 
+		where 
+			1=1 
+			<if test="pd.suppname != null and pd.suppname != ''">
+				and s.supplier_name  like '%${pd.suppname}%' 
+			</if>
+			<if test="pd.month != null and pd.month != ''">
+				and t.group_num  like '%${pd.month}%' 
+			</if>
+			<if test="pd.loginname != 'admin' and pd.loginname != null and pd.loginname != ''">
+				and s.contact_person_mobile = #{pd.loginname}
+			</if>
+		GROUP BY t1.supplier_id 
+	</select>
+	<!-- 通过门店编码和门店简称获取数据 -->
+	<select id="findGHSJSlist" parameterType="pd" resultType="pd" >
+		select
+				t1.supplier_id ,
+				s.supplier_name,sum(t.final_quantity * t.purchase_price) TotalPrice 
+				,t.comment
+		from t_en_order_item t 
+		LEFT JOIN t_en_warehouse_order t1 on t1.order_num = t.order_num
+		LEFT JOIN tp_supplier s on s.id = t1.supplier_id 
+		where 
+			1=1 
+			<if test="suppname != null and suppname != ''">
+				and s.supplier_name  like '%${suppname}%' 
+			</if>
+			<if test="month != null and month != ''">
+				and t.group_num  like '%${month}%' 
+			</if>
+			<if test="supplier_id != null and supplier_id  != ''">
+				 and t1.supplier_id  = #{supplier_id}
+			</if>
+			<if test="loginname != 'admin' and loginname != null and loginname != ''">
+				and s.contact_person_mobile = #{loginname}
+			</if>
+		GROUP BY t1.supplier_id 
+	</select>
+	<!-- 通过门店编码和月份获取数据 -->
+	<select id="findsupdzh" parameterType="pd" resultType="pd">
+		select
+				t1.supplier_id ,
+				RIGHT(t1.group_num,1) group_num,
+				DATE_FORMAT(t1.create_time,'%Y.%m') create_time,
+				s.supplier_name,
+				sum(t.final_quantity) final_quantity,
+				sum(t.final_quantity * t.purchase_price) TotalPrice,
+				ifnull(t1.paid_amount,0) paid_amount,
+				t.comment
+		from t_en_order_item t 
+		LEFT JOIN t_en_warehouse_order t1 on t1.order_num = t.order_num
+		LEFT JOIN tp_supplier s on s.id = t1.supplier_id 
+		where 
+			1=1
+			<if test="suppname != null and suppname != ''">
+				and s.supplier_name  like '%${suppname}%' 
+			</if>
+			<if test="month != null and month != ''">
+				and t.group_num  like '%${month}%' 
+			</if>
+			<if test="supplier_id != null and supplier_id  != ''">
+				 and t1.supplier_id  = #{supplier_id}
+			</if>
+			<if test="loginname != 'admin' and loginname != null and loginname != ''">
+				and s.contact_person_mobile = #{loginname}
+			</if>
+		GROUP BY t1.group_num
+	</select>
+	
+	<!-- 通过门店id获取数据 -->
+	<select id="findsupid" parameterType="pd" resultType="pd">
+		select
+				t1.supplier_id ,
+				s.supplier_num,
+				s.supplier_name,
+				s.contact_person_mobile,
+				s.supplier_email,
+				s.contact_person,
+				sum(t.final_quantity * t.purchase_price) TotalPrice,
+				ifnull(t1.paid_amount,0) paid_amount,
+				
+					sum(t.final_quantity) final_quantity
+		from t_en_order_item t 
+		LEFT JOIN t_en_warehouse_order t1 on t1.order_num = t.order_num
+		LEFT JOIN tp_supplier s on s.id = t1.supplier_id 
+		where 
+			1=1
+			<if test="supplier_id != null and supplier_id  != ''">
+				 and t1.supplier_id  = #{supplier_id}
+			</if>  
+			<if test="month != null and month != ''">
+				and t.group_num  like '%${month}%' 
+			</if>
+		group by t1.supplier_id
+	</select>
+</mapper>

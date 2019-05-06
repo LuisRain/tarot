@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="SupplierMapper">
+
+
+	<!-- <select id="findbarandarchives" resultType="pd" parameterType="pd">
+		select * from tp_supplier tsp
+
+		LEFT JOIN tp_supplier_archives tsa on tsa.supplier_id=tsp.id
+		
+		LEFT JOIN tp_supplier_brand tsb on tsb.supplier_id=tsp.id
+		
+		LEFT JOIN tp_supplier_contract tsc on tsc.supplier_id=tsp.id
+		
+	</select> -->
+	
+	<select id="supplierexcel" parameterType="pd" resultType="pd" useCache="false">
+		select
+		    a.supplier_num,
+			a.id,
+			a.supplier_name,
+			a.short_name,
+			a.contact_person,
+			a.contact_person_mobile,
+			a.address,
+			a.state,
+			a.remarks,
+			a.create_date,
+			a.supplier_tel	
+		from 
+			 TP_SUPPLIER a 
+			 <if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			  where 
+			   <if test="searchcriteria==1">
+			   a.supplier_name LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			    <if test="searchcriteria==2">
+			   a.address LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			    <if test="searchcriteria==3">
+			    a.contact_person LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			    <if test="searchcriteria==4">
+			     a.supplier_num  LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			 </if>
+	</select>
+	
+	<select id="findtcproduct" resultType="pd" parameterType="pd">
+		
+		select tpt.product_name,tpt.bar_code,tpt.product_num,tmu.unit_name,tpt.box_number,tpp.product_price pur_price,tppp.product_price sale_price,tpt.taxes,tppt.classify_name,tpt.expire_days
+		from t_product tpt
+		LEFT JOIN tp_product_type tppt on tppt.id=tpt.product_type_id
+		LEFT JOIN tp_product_price tpp on tpp.product_id=tpt.id and tpp.price_type=1
+		LEFT JOIN tp_product_price tppp on tppp.product_id=tpt.id and tppp.price_type=2
+		LEFT JOIN tp_supplier tps on tps.id=tpp.relation_id
+		LEFT JOIN tp_meterage_unit tmu ON tmu.id = tpt.unit
+		where tps.id=${supplier_id}
+	
+	</select>
+	
+	
+	<select id="findpurorder" resultType="pd" parameterType="pd">
+		select tpo.supplier_id,tpo.group_num,sum(tpoi.quantity) quantity,sum(tpoi.final_quantity) final_quantity,sum(tpoi.quantity*tpoi.purchase_price) cgje,sum(tpoi.final_quantity*tpoi.purchase_price) dhje from t_purchase_order tpo
+		
+		LEFT JOIN t_purchase_order_item tpoi on tpoi.order_num=tpo.order_num
+		
+		where tpo.supplier_id=${supplier_id}
+		
+		group by tpo.group_num,tpo.supplier_id
+	</select>
+	
+	
+	<select id="findarchives" resultType="pd" parameterType="pd">
+		select tsa.* from tp_supplier tsp
+
+		LEFT JOIN tp_supplier_archives tsa on tsa.supplier_id=tsp.id
+		
+		where tsp.id=${supplier_id}
+	
+	</select>
+	
+	<select id="findbrand" resultType="pd" parameterType="pd">
+		select tsb.* from tp_supplier tsp
+
+		LEFT JOIN tp_supplier_brand tsb on tsb.supplier_id=tsp.id
+		where tsp.id=${supplier_id}
+	</select>
+	
+	<select id="findcontract" resultType="pd" parameterType="pd">
+		select tsc.* from tp_supplier tsp
+
+		LEFT JOIN tp_supplier_contract tsc on tsc.supplier_id=tsp.id
+		where tsp.id=${supplier_id}
+		
+		order by tsc.create_time asc
+	</select>
+	<insert id="savearchives" parameterType="pd">
+		insert into tp_supplier_archives (
+			codes,
+			people,
+			registered_capital,
+			representative,
+			id_number,
+			operation,
+			contacts,
+			phone,
+			supplier_id
+		)values(
+			#{codes},
+			#{people},
+			#{registered_capital},
+			#{representative},
+			#{id_number},
+			#{operation},
+			#{contacts},
+			#{phone},
+			${supplier_id}
+		)
+	</insert>
+	<update id="updatearchives" parameterType="pd">
+		update tp_supplier_archives
+		set 
+			codes=#{codes},
+			people=#{people},
+			registered_capital=#{registered_capital},
+			representative=#{representative},
+			id_number=#{id_number},
+			operation=#{operation},
+			contacts=#{contacts},
+			phone=#{phone}
+		where id=${id}
+	</update>
+	
+	
+	<insert id="savecontract" parameterType="pd" useGeneratedKeys="true" keyProperty="id">
+		insert into tp_supplier_contract (
+			supplier_id,
+			start_time,
+			end_time
+			
+		)values(
+			${supplier_id},
+			#{start_time},
+			#{end_time}
+			
+		)
+	</insert>
+	
+	<update id="updatecontract" parameterType="pd">
+		update tp_supplier_contract
+		
+		set state=1
+		
+		where supplier_id=${supplier_id} and id!=${id}
+	
+	</update>
+	
+	<insert id="savebrand" parameterType="pd">
+		insert into tp_supplier_brand (
+			brand,
+			levels,
+			ranges,
+			supplier_id
+		)values(
+			#{brand},
+			#{level},
+			#{range},
+			${supplier_id}
+		)
+	</insert>
+	
+	
+	
+
+	<!-- 列表(全部) -->
+	<select id="supplierlistPage" parameterType="page" resultType="pd" useCache="false">
+		select
+		    a.supplier_num,
+			a.id,
+			a.supplier_name,
+			a.short_name,
+			a.contact_person,
+			a.contact_person_mobile,
+			a.address,
+			a.state,
+			a.remarks,
+			a.create_date,
+			a.supplier_tel	
+		from 
+			 TP_SUPPLIER a 
+			 <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			  where 
+			   <if test="pd.searchcriteria==1">
+			   a.supplier_name LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==2">
+			   a.address LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    a.contact_person LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==4">
+			     a.supplier_num  LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			   
+			 </if>
+	</select>
+	
+	<!-- 删除用户 -->
+	<delete id="deleteSupplier" parameterType="pd" flushCache="false">
+		delete from TP_SUPPLIER
+		where 
+			id = #{id};
+	</delete>
+	
+	<!-- 批量删除用户 -->
+	<delete id="deleteAllSupller" parameterType="String" flushCache="false">
+		delete from TP_SUPPLIER
+		where 
+			id in
+  			 <foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                  #{item}
+             </foreach>
+             ;
+	</delete>
+	
+	
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into TP_SUPPLIER(
+			id,
+			SUPPLIER_NAME,	
+			CONTACT_PERSON,	
+			CONTACT_PERSON_MOBILE,	
+			ADDRESS,	
+			STATE,	
+			REMARKS,	
+			CREATE_DATE,	
+			SUPPLIER_TEL,	
+			SUPPLIER_NUM,
+			timearrival
+		) values (
+			#{SUPPLIER_ID},
+			#{SUPPLIER_NAME},	
+			#{CONTACT_PERSON},	
+			#{CONTACT_PERSON_MOBILE},	
+			#{ADDRESS},	
+			#{STATE},	
+			#{REMARKS},	
+			#{CREATE_DATE},	
+			#{SUPPLIER_TEL},	
+			#{SUPPLIER_NUM},
+			#{timearrival}	
+			
+		)
+	</insert>
+		<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultType="pd">
+		select 
+			SUPPLIER_NAME,	
+			CONTACT_PERSON,	
+			CONTACT_PERSON_MOBILE,	
+			ADDRESS,	
+			STATE,	
+			REMARKS,	
+			CREATE_DATE,	
+			SUPPLIER_TEL,	
+			SUPPLIER_NUM,	
+			id
+		from 
+			TP_SUPPLIER
+		where 
+			id = #{id}
+	</select>
+	<!-- 通过ID获取数据 -->
+	<select id="findMById" parameterType="String" resultType="pd">
+		select 
+			SUPPLIER_NAME,	
+			CONTACT_PERSON,	
+			CONTACT_PERSON_MOBILE,	
+			ADDRESS,	
+			STATE,	
+			REMARKS,	
+			CREATE_DATE,	
+			SUPPLIER_TEL,	
+			SUPPLIER_NUM,	
+			id
+		from 
+			TP_SUPPLIER
+		where 
+			id = #{id}
+	</select>
+		<!-- 通过ID获取数据 -->
+	<select id="findSupsById" parameterType="pd" resultType="pd">
+		select 
+			SUPPLIER_NAME,	
+			CONTACT_PERSON,	
+			CONTACT_PERSON_MOBILE,	
+			ADDRESS,	
+			STATE,	
+			REMARKS,	
+			CREATE_DATE,	
+			SUPPLIER_TEL,	
+			SUPPLIER_NUM,	
+			id
+		from 
+			TP_SUPPLIER
+		where 
+			id = #{sup_id}
+	</select>
+		<!-- 通过name获取数据 -->
+	<select id="findByName" parameterType="String" resultType="pd">
+		SELECT 
+			SUPPLIER_NAME,	
+			CONTACT_PERSON,	
+			CONTACT_PERSON_MOBILE,	
+			ADDRESS,	
+			STATE,	
+			REMARKS,	
+			CREATE_DATE,	
+			SUPPLIER_TEL,	
+			SUPPLIER_NUM,	
+			id
+		FROM 
+			TP_SUPPLIER
+		WHERE 
+			SUPPLIER_NAME LIKE '%#{name}%'   
+	</select>
+	
+	
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update  TP_SUPPLIER
+			set 
+				SUPPLIER_NAME = #{SUPPLIER_NAME},
+				CONTACT_PERSON = #{CONTACT_PERSON},
+				CONTACT_PERSON_MOBILE = #{CONTACT_PERSON_MOBILE},
+				ADDRESS = #{ADDRESS},
+				REMARKS = #{REMARKS},
+				SUPPLIER_TEL = #{SUPPLIER_TEL},
+				timearrival=#{timearrival}
+			where 
+				  id = #{id}
+	</update>
+	<!-- 修改 -->
+	<update id="editM" parameterType="pd">
+		update  TP_SUPPLIER
+			set 
+				SUPPLIER_NAME = #{SUPPLIER_NAME},
+				CONTACT_PERSON = #{CONTACT_PERSON},
+				CONTACT_PERSON_MOBILE = #{CONTACT_PERSON_MOBILE},
+				ADDRESS = #{ADDRESS},
+				REMARKS = #{REMARKS},
+				SUPPLIER_TEL = #{SUPPLIER_TEL},
+				timearrival=#{timearrival}
+			where 
+				  SUPPLIER_NUM = #{SUPPLIER_NUM}
+	</update>
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findByGetId" parameterType="pd" resultType="pd">
+		select 
+			SUPPLIER_NAME,	
+			CONTACT_PERSON,	
+			CONTACT_PERSON_MOBILE,	
+			ADDRESS,	
+			STATE,	
+			REMARKS,	
+			CREATE_DATE,	
+			SUPPLIER_TEL,	
+			SUPPLIER_NUM,	
+			id
+		from 
+			TP_SUPPLIER
+		where 
+		<if test="USERNAME!=null and USERNAME!=''">
+			 CONTACT_PERSON_MOBILE = #{USERNAME}
+		</if>
+	</select>
+	
+	<!-- 查詢供应商 -->
+	<select id="findSuppById" parameterType="pd" resultType="pd">
+		select
+		supplier_num,
+		id,
+		supplier_name,
+		short_name,
+		contact_person,
+		contact_person_mobile,
+		address,
+		state,
+		remarks,
+		create_date,
+		supplier_tel
+		from
+		tp_supplier
+		where state=1
+		<if test="id!=null and id!='' and id>0">
+			and id=#{id}
+		</if>
+		<if test="supplier_name!=null and supplier_name!=''">
+			and supplier_name LIKE CONCAT('%','${supplier_name}','%' )
+		</if>
+	</select>
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findByGetNum" parameterType="pd" resultType="pd">
+		select 
+			SUPPLIER_NAME,	
+			CONTACT_PERSON,	
+			CONTACT_PERSON_MOBILE,	
+			ADDRESS,	
+			STATE,	
+			REMARKS,	
+			CREATE_DATE,	
+			SUPPLIER_TEL,	
+			SUPPLIER_NUM,	
+			id
+		from 
+			TP_SUPPLIER
+		where 
+			SUPPLIER_NUM=#{SUPPLIER_NUM}
+	</select>
+	<!-- 导出商品excel -->
+	<select id="excel" parameterType="page" resultType="pd">
+		SELECT
+		tps.id AS "供应商ID",
+		tps.supplier_name AS "供应商名称",
+		tps.short_name AS "简称",
+		tps.supplier_num AS "编码",
+		tps.contact_person AS "联系人",
+		tps.contact_person_mobile AS "联系人手机",
+		tps.supplier_tel AS "联系人电话",
+		tps.address AS "地址",
+		tps.supplier_email AS "EMail"
+		FROM
+		tp_supplier AS tps
+		where
+		1=1
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tps.supplier_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tps.address LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+
+			<if test="pd.searchcriteria==3">
+				tps.contact_person LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				tps.supplier_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==5">
+				tps.contact_person_mobile LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+	</select>
+</mapper>

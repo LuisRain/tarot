@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ProductTypeTreeMapper">
+	<resultMap id="productTypeTreeResultMap" type="ProductTypeTree">
+		<id column="id" property="id" jdbcType="BIGINT" />
+		<result column="menu_tree" property="menuTree" jdbcType="VARCHAR" />
+		<result column="state" property="state" jdbcType="INTEGER" />
+	</resultMap>
+	<!-- 添加菜单字符串 -->
+	<insert id="addProductTypeTree"  useGeneratedKeys="true" keyProperty="id" parameterType="com.hy.entity.product.ProductTypeTree">
+		INSERT INTO tp_product_type_tree (menu_tree, state)
+		values (#{menuTree}, #{state});
+	</insert>
+	<!--查询菜单信息-->
+	<select id="queryProductTypeTreeByState" resultMap="productTypeTreeResultMap" parameterType="pd">
+		SELECT hptt.id,hptt.menu_tree 
+		FROM tp_product_type_tree hptt
+		WHERE hptt.state=#{state};
+	</select>
+	<select id="getProductTypeTree" resultMap="productTypeTreeResultMap" parameterType="pd">
+		SELECT hptt.id,hptt.menu_tree
+		FROM tp_product_type_tree hptt
+		WHERE hptt.state=1;
+	</select>
+	
+	<!-- 更新菜单记录 -->
+	<update id="updateProductType"   parameterType="com.hy.entity.product.ProductTypeTree">
+		UPDATE tp_product_type_tree hptt SET hptt.state=#{state}
+		WHERE hptt.id= #{id};
+	</update>
+	  <!-- 查询全部商品类型 无封装 无须状态 -->
+  <select id="getProudctTypeList" parameterType="pd" resultType="pd">
+  SELECT
+tpt.id AS id,
+tpt.classify_name AS name,
+tpt.parent_id As pId
+FROM
+tp_product_type tpt
+ where tpt.state=#{state}
+  </select>
+</mapper>

@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="StorageMapper">
+
+    <!-- 获取入库信息 -->
+    <select id="queryenOrder" parameterType="pd" resultType="pd">
+        SELECT
+        teo.id,
+        ts.id AS ts_id,
+        su.`NAME`,
+        teo.group_num,
+        teo.order_num,
+        teo.order_date,
+        teo.checked_state,
+        ts.contact_person,
+        ts.contact_person_mobile,
+        teo.`comment`,
+        total_svolume,
+        teo.total_weight,
+        teo.paid_amount,
+        teo.ivt_state,
+        teo.create_time,
+        ts.supplier_name,
+        ts.supplier_num,
+        teo.final_amount,
+        teo.order_date,
+        teo.amount,
+        ts.address,
+        teo.supplier_id
+        <if test="order_num != null and order_num != ''">
+            ,(
+            SELECT
+            sum(final_quantity)
+            FROM
+            t_en_order_item
+            WHERE
+            order_num = #{order_num}
+            ) AS final_quantity
+        </if>
+        FROM
+        t_en_warehouse_order AS teo
+        LEFT JOIN tp_supplier AS ts ON ts.id = teo.supplier_id
+        LEFT JOIN sys_user su ON su.USER_ID = teo.user_id
+        <where>
+            <if test="order_num != null and order_num != ''">
+                teo.order_num = #{order_num}
+            </if>
+            <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+                AND teo.create_time <![CDATA[>=]]> #{startDate} AND teo.create_time
+                <![CDATA[<=]]> #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据商品RK__来单号查询商品 -->
+    <select id="queryProductOrderNumber" parameterType="pd" resultType="pd">
+        SELECT
+        toi.id,
+        tp.id as tp_id,
+        toi.order_num,
+        tp.bar_code,
+        tp.product_num,
+        tp.specification,
+        ts.supplier_name,
+        tp.product_name,
+        tp.specification,
+        tp.expire_days,
+        toi.quantity,
+        toi.final_quantity,
+        toi.purchase_price,
+        toi.is_ivt_BK,
+        toi.comment,
+        tpp1.product_price,
+        toi.product_time,
+        (toi.final_quantity*tpp1.product_price) as price ,
+        (toi.quantity*tpp1.product_price) as price1,
+        toi.product_group_num,
+        toi.gift_quantity,
+        tu.unit_name,
+        tp.remarks,
+        tp.sku_volume,
+        tp.sku_weight
+        FROM
+        t_en_order_item AS toi
+        LEFT JOIN t_product AS tp ON tp.id = toi.product_id
+        LEFT JOIN tp_product_price AS tpp1 ON tpp1.product_id = tp.id AND tpp1.price_type = 1
+        LEFT JOIN tp_supplier AS ts ON ts.id = tpp1.relation_id
+        LEFT JOIN tp_meterage_unit AS tu ON tp.unit = tu.id
+        <where>
+            <if test="goodsID != null and goodsID != '' ">
+                toi.order_num = #{goodsID};
+            </if>
+            <if test="toi_id != null and toi_id != '' and order_num !=null and order_num != '' ">
+                toi.id = #{toi_id} AND toi.order_num = #{order_num};
+            </if>
+            <if test="bill_id_detail != null and bill_id_detail != '' and goods_id !=null and goods_id != '' ">
+                tp.id = #{goods_id} AND toi.order_num = #{bill_id_detail};
+            </if>
+        </where>
+
+    </select>
+    <!-- 查询商品 -->
+    <select id="queryenCommodity" parameterType="pd" resultType="pd">
+        SELECT
+        toi.id,
+        tp.id AS tp_id,
+        tp.bar_code,
+        tp.product_num,
+        tp.specification,
+        ts.supplier_name,
+        tp.product_name,
+        tp.expire_days,
+        toi.quantity,
+        toi.final_quantity,
+        toi.purchase_price,
+        toi.is_ivt_BK,
+        toi. COMMENT,
+        tpp1.product_price,
+        toi.product_time,
+        toi.en_time,
+        (
+        toi.final_quantity * tpp1.product_price
+        ) AS price,
+        (
+        toi.quantity * tpp1.product_price
+        ) AS price1,
+        toi.product_group_num,
+        toi.gift_quantity,
+        teo.id,
+        teo.group_num,
+        teo.order_num,
+        teo.order_date,
+        teo.checked_state,
+        ts.contact_person,
+        ts.contact_person_mobile,
+        teo.`comment`,
+        total_svolume,
+        teo.total_weight,
+        teo.paid_amount,
+        teo.ivt_state,
+        teo.create_time,
+        ts.supplier_name,
+        ts.supplier_num,
+        teo.final_amount,
+        teo.order_date,
+        teo.amount,
+        ts.address,
+        teo.supplier_id,
+        tu.unit_name,
+        SUM(tpi.product_quantity) AS product_quantity,
+        tp.sku_volume,
+        tp.sku_weight
+        FROM
+        t_en_order_item AS toi
+        LEFT JOIN t_product AS tp ON tp.id = toi.product_id
+        LEFT JOIN tp_product_price AS tpp1 ON tpp1.product_id = tp.id
+        AND tpp1.price_type = 1
+        LEFT JOIN tp_supplier AS ts ON ts.id = tpp1.relation_id
+        LEFT JOIN t_en_warehouse_order AS teo ON toi.order_num = teo.order_num
+        LEFT JOIN tp_meterage_unit AS tu ON tp.unit = tu.id
+        LEFT JOIN t_product_inventory AS tpi ON tp.id = tpi.product_id
+        <where>
+        	<if test="tp_id != null and tp_id != '' ">
+            	tp.id LIKE "%"#{tp_id}"%"
+	        </if>
+	        <if test="tp_id_left != null and tp_id_left != '' ">
+	            AND tp.id LIKE "%"#{tp_id_left}
+	        </if>
+	        <if test="tp_id_right != null and tp_id_right != '' ">
+	            AND tp.id LIKE #{tp_id_right}"%"
+	        </if>
+	        <if test="tp_id_accurate != null and tp_id_accurate != '' ">
+	            AND tp.id = #{tp_id_accurate}
+	        </if>
+	        <if test="bar_code != null and bar_code != '' ">
+	            AND tp.bar_code = #{bar_code}
+	        </if>
+	        <if test="enter_name != null and enter_name != '' ">
+	            AND tp.product_name LIKE "%"#{enter_name}"%"
+	        </if>
+	        <if test="clientId != null and clientId != ''">
+	        	AND ts.id = #{clientId}
+	        </if>
+        </where>
+        GROUP BY
+        product_num
+    </select>
+    <!-- 查询或选择单位 -->
+    <select id="queryUnit" parameterType="pd" resultType="pd">
+        SELECT
+        tu.unit_name
+        FROM
+        t_en_order_item AS toi
+        LEFT JOIN t_product AS tp ON tp.id = toi.product_id
+        LEFT JOIN tp_product_price AS tpp1 ON tpp1.product_id = tp.id
+        AND tpp1.price_type = 1
+        LEFT JOIN tp_supplier AS ts ON ts.id = tpp1.relation_id
+        LEFT JOIN t_en_warehouse_order AS teo ON toi.order_num = teo.order_num
+        LEFT JOIN tp_meterage_unit AS tu ON tp.unit = tu.id
+        LEFT JOIN t_product_inventory AS tpi ON tp.id = tpi.product_id
+        WHERE tu.status = 1
+        <if test=" goodsID != null and goodsID != '' ">
+            AND tp.id = #{goodsID}
+        </if>
+        GROUP BY
+        product_num
+    </select>
+
+    <!-- 根据商品ID查询售出价格 -->
+    <select id="productIDInquirySalePrice" parameterType="pd" resultType="pd">
+        select
+        tp.id tpId,
+        tppp.product_price,
+        tp.sku_volume,
+        tp.sku_weight
+        from t_product tp,tp_product_price tppp
+        where
+        tp.id= #{goodsID}
+        AND tppp.product_id=tp.id AND
+        tppp.supplier_priority=1
+        AND tppp.price_type = 1;
+    </select>
+
+    <!-- 查询供应商 -->
+    <select id="querysupplier" parameterType="pd" resultType="pd">
+        SELECT
+        id,
+        supplier_num,
+        supplier_name,
+        short_name,
+        contact_person,
+        contact_person_mobile,
+        supplier_tel,
+        address,
+        remarks,
+        create_date
+        FROM
+        tp_supplier
+        WHERE
+        state=1
+        <if test="supplier_name != null and supplier_name != '' ">
+            AND supplier_name LIKE "%"#{supplier_name}"%"
+        </if>
+        <if test="supplier_num != null and supplier_num != '' ">
+            AND supplier_num LIKE "%"#{supplier_num}"%"
+        </if>
+        <if test="supplier_num_left != null and supplier_num_left != '' ">
+            AND supplier_num LIKE "%"#{supplier_num_left}
+        </if>
+        <if test="supplier_num_right != null and supplier_num_right != '' ">
+            AND supplier_num LIKE #{supplier_num_right}"%"
+        </if>
+        <if test="supplier_num_accurate != null and supplier_num_accurate != '' ">
+            AND supplier_num = #{supplier_num_accurate}
+        </if>
+    </select>
+
+    <!-- 修改 -->
+    <update id="updateStorage" parameterType="pd">
+        UPDATE t_en_order_item
+        SET
+        <if test="quantity != null and quantity != '' ">
+            quantity = #{quantity},
+        </if>
+        <if test="finalQuantity != null and finalQuantity != ''">
+        	final_quantity = #{finalQuantity},
+        </if>
+        <if test="svolume != null and svolume != ''">
+        	svolume = #{svolume},
+        </if>
+        <if test="weight != null and weight != ''">
+        	weight = ${weight}
+        </if>
+        <where>
+            <if test="id != null and id != '' and id > 0">
+            	id = #{id}
+            </if>
+            <if test="orderNum != null and orderNum != ''">
+            	AND order_num = #{orderNum}
+            </if>
+            <if test="groupNum != null and groupNum != ''">
+            	AND group_num = #{groupNum}
+            </if>
+            <if test="productId != null">
+            	AND product_id = #{productId}
+            </if>
+        </where>
+    </update>
+
+    <!-- 新增 -->
+    <insert id="save" parameterType="pd">
+        insert into t_en_order_item(
+        order_num,
+        group_num,
+        product_id,
+        purchase_price,
+        quantity,
+        final_quantity,
+        comment,
+        create_time,
+        <if test="product_time != null and product_time != '' ">
+            product_time,
+        </if>
+
+        state,
+        is_split_ivt,
+        is_ivt_BK,
+        en_time,
+        creator
+        ) values (
+        #{order_num},
+        #{group_num},
+        #{product_id},
+        #{price},
+        #{qty},
+        #{qty},
+        #{comment},
+        #{create_time},
+        <if test="product_time != null and product_time != '' ">
+            #{product_time},
+        </if>
+
+        #{state},
+        #{is_split_ivt},
+        #{is_ivt_BK},
+        #{en_time},
+        #{creator}
+        )
+    </insert>
+
+    <!-- 新增表头信息 -->
+    <insert id="saveNewOrder" parameterType="pd">
+        insert into t_en_warehouse_order(
+            group_num,
+            order_num,
+            checked_state,
+            supplier_id,
+            order_date,
+            manager_name,
+            comment,
+            create_time,
+            state,
+            order_type,
+            is_order_print,
+            user_id,
+            is_temporary,
+            is_ivt_order_print,
+            ck_id
+        ) values (
+            #{group_num},
+            #{order_num},
+            #{checked_state},
+            #{supplier_id},
+            #{order_date},
+            #{manager_name},
+            #{comment},
+            #{create_time},
+            #{state},
+            #{order_type},
+            #{is_order_print},
+            #{user_id},
+            #{is_temporary},
+            #{is_ivt_order_print},
+            #{ck_id}
+        )
+    </insert>
+
+    <!-- 查询供应商 -->
+    <select id="selectStorage" parameterType="pd" resultType="pd">
+        select * FROM  t_en_order_item
+        <where>
+            <if test="order_num != null and order_num != '' and goodsID != null and goodsID != '' ">
+                order_num = #{order_num} and  goodsID = #{goodsID}
+            </if>
+        </where>
+    </select>
+</mapper>

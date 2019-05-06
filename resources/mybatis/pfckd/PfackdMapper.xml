@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pfackdMapper">
+
+
+	<update id="updateproductprice" parameterType="pd">
+		update t_ex_order_item teoi,
+			tp_product_price tpp
+			
+			set 
+			 teoi.purchase_price=tpp.product_price
+			
+			
+			where teoi.product_id=tpp.product_id
+			and tpp.price_type=1
+	
+	
+	</update>
+	<!-- 批量导入销售单 -->
+	<insert id="saveExOrderList" parameterType="java.util.List">
+		insert into t_ex_warehouse_order(
+			group_num,
+			order_num,
+			checked_state,
+			merchant_id,
+			order_date,
+			manager_name,
+			manager_tel,
+			deliver_address,
+			comment,
+			final_amount,
+			total_svolume,
+			total_weight,
+			paid_amount,
+			is_ivt_order_print,
+			is_temporary,
+			user_id,
+			is_order_print,
+			ivt_state,
+			amount,
+			order_type,
+			ck_id,
+			type,
+			create_time,confirmed
+		)values
+		<foreach item="item" collection="list"  separator=",">
+			(#{item.group_num},#{item.order_num},#{item.checked_state},
+			
+			 #{item.merchant_id}, now(),#{item.manager_name},#{item.manager_tel},
+			 
+			 #{item.deliver_address},#{item.comment},#{item.final_amount},
+			 
+			 #{item.total_svolume},#{item.total_weight},#{item.paid_amount},#{item.is_ivt_order_print},
+			 
+			 #{item.is_temporary},#{item.user_id},#{item.is_order_print},#{item.ivt_state},
+			 
+			 #{item.amount},#{item.order_type},#{item.ck_id},#{item.type},now(),#{item.confirmed}
+			)
+		</foreach>	
+	</insert>
+	
+	<!-- 批量导入销售单详情 -->
+	<insert id="saveExOrderItemsupplier" parameterType="java.util.List">
+		insert into t_ex_order_item(
+			group_num,
+			order_num,
+			product_id,
+			sale_price,
+			quantity,
+			final_quantity,
+			svolume,
+			weight,
+			creator,
+			comment,
+			state,
+			is_ivt_BK,
+			gift_quantity,
+			create_time
+		)values
+		<foreach item="item" collection="list"  separator=",">
+			(#{item.group_num},#{item.order_num},#{item.product_id},
+			
+			 #{item.sale_price},#{item.quantity},#{item.final_quantity},
+			 
+			 #{item.svolume},#{item.weight},#{item.creator},
+			 
+			 #{item.comment},#{item.state},#{item.is_ivt_BK},${item.gift_quantity},now()
+			)
+		</foreach>	
+	</insert>
+	<!-- 查询出库单总金额 -->
+	<select id="findsumprice" resultType="pd">
+		select t.order_num,sum(t.sale_price * t.quantity) final_amount from t_ex_order_item t  GROUP BY t.order_num
+	</select>
+	<!-- 保存出库单 -->
+	<insert id="saveExOrder" parameterType="pd">
+		insert into t_ex_warehouse_order(
+			group_num,
+			order_num,
+			checked_state,
+			merchant_id,
+			order_date,
+			manager_name,
+			manager_tel,
+			deliver_address,
+			comment,
+			final_amount,
+			total_svolume,
+			total_weight,
+			paid_amount,
+			is_ivt_order_print,
+			is_temporary,
+			user_id,
+			is_order_print,
+			ivt_state,
+			amount,
+			order_type,
+			ck_id,
+			type,
+			create_time,confirmed
+		)values
+		
+			(#{group_num},#{order_num},#{checked_state},
+			
+			 #{merchant_id}, now(),#{manager_name},#{manager_tel},
+			 
+			 #{deliver_address},#{comment},#{final_amount},
+			 
+			 #{total_svolume},#{total_weight},#{paid_amount},#{is_ivt_order_print},
+			 
+			 #{is_temporary},#{user_id},#{item.is_order_print},#{ivt_state},
+			 
+			 #{amount},#{order_type},#{ck_id},#{type},now(),#{confirmed}
+			)
+		
+	</insert>
+	<!-- 导入销售单详情 -->
+	<insert id="saveExOrderItem" parameterType="java.util.List">
+		insert into t_ex_order_item(
+			group_num,
+			order_num,
+			product_id,
+			sale_price,
+			quantity,
+			final_quantity,
+			svolume,
+			weight,
+			creator,
+			comment,
+			state,
+			is_ivt_BK,
+			gift_quantity,
+			create_time
+		)values
+			(#{group_num},#{order_num},#{product_id},
+			
+			 #{sale_price},#{quantity},#{final_quantity},
+			 
+			 #{svolume},#{weight},#{creator},
+			 
+			 #{comment},#{state},#{is_ivt_BK},${gift_quantity},now()
+			)
+	</insert>
+	<!-- 通过门店编码和门店简称获取数据 -->
+	<select id="findMerchant" parameterType="pd" resultType="pd" useCache="false" >
+		select 
+			*
+		from 
+			t_merchant
+		where 
+			short_name = #{short_name} 
+			and 
+			merchant_num = #{merchant_num}
+	</select>
+	<!-- 根据商品id查询商品价格 -->
+	<select id="findprice" parameterType="pd" resultType="pd" useCache="false" >
+		select * from tp_product_price t where t.product_id = #{id}  and t.price_type = 1
+	</select>
+	<!-- 根据门店id 查询最新出库单 -->
+	<select id="findMdExorder" parameterType="pd" resultType="pd" useCache="false" >
+		select * from t_ex_warehouse_order t 
+ 		where 1=1 and t.merchant_id = #{merchant_id} and t.ivt_state = 1 and t.type = 2 and t.order_type = 1 LIMIT 0,1
+	</select>
+	
+	<!-- 根据出库单号和商品id 查询出库单详情 -->
+	<select id="findexorderitem" parameterType="pd" resultType="pd" useCache="false" >
+		select * from t_ex_order_item t where t.order_num= #{order_num}  and  t.product_id=#{product_id} 
+	</select>
+	
+	<!-- 批量更新出库单 -->
+	<update id="updateForBatch" parameterType="java.util.List">
+	      update t_ex_warehouse_order set
+	      final_amount =
+	      <foreach collection="list" item="item" index="index" separator=" " open="case ID" close="end">
+	        when #{item.id} then #{item.final_amount}
+	      </foreach>
+	      ,total_svolume=
+	      <foreach collection="list" item="item" index="index" separator=" " open="case ID" close="end">
+	        when #{item.id} then #{item.total_svolume}
+	      </foreach>
+	      ,total_weight=
+	      <foreach collection="list" item="item" index="index" separator=" " open="case ID" close="end">
+	        when #{item.id} then #{item.total_weight}
+	      </foreach>
+	      where ID in
+	      <foreach collection="list" index="index" item="item" separator="," open="(" close=")">
+	        #{item.id}
+	      </foreach>
+	</update> 
+	<!-- 批量更新出库单 -->
+	<update id="updateForBatch2" parameterType="java.util.List">
+	      update t_ex_warehouse_order set
+	      final_amount =
+	      <foreach collection="list" item="item" index="index" separator=" " open="case order_num" close="end">
+	        when #{item.order_num} then #{item.final_amount}
+	      </foreach>
+	      where order_num in
+	      <foreach collection="list" index="index" item="item" separator="," open="(" close=")">
+	        #{item.order_num}
+	      </foreach>
+	</update>                            
+	<!-- 批量更新出库单详情 -->
+	<update id="updateOrderitemForBatch" parameterType="java.util.List">
+	      update t_ex_order_item set
+	      quantity =
+	      <foreach collection="list" item="item" index="index" separator=" " open="case ID" close="end">
+	        when #{item.id} then #{item.quantity}
+	      </foreach>
+	      ,final_quantity=
+	      <foreach collection="list" item="item" index="index" separator=" " open="case ID" close="end">
+	        when #{item.id} then #{item.final_quantity}
+	      </foreach>
+	      ,comment=
+	      <foreach collection="list" item="item" index="index" separator=" " open="case ID" close="end">
+	        when #{item.id} then #{item.comment}
+	      </foreach>
+	      where ID in
+	      <foreach collection="list" index="index" item="item" separator="," open="(" close=")">
+	        #{item.id}
+	      </foreach>
+	</update>        
+</mapper>

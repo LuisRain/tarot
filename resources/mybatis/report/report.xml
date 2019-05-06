@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="report">
+
+	<!-- 压期到货 -->
+	<select id="timearrivalexcel" parameterType="pd" resultType="pd">
+			SELECT
+			tmt.merchant_name ,
+			tmt.short_name ,
+			tmt.merchant_num ,
+			tpt.product_name,
+			tpt.bar_code ,
+			tpt.product_num ,
+			tsoi.final_quantity ,
+			tsoi.quantity,
+			tsoi.group_num,
+			tsoi.order_num,
+			tsoi.gift_quantity
+		
+		FROM
+			t_selling_order tso
+		LEFT JOIN t_selling_order_item tsoi ON tsoi.order_num = tso.order_num
+		LEFT JOIN t_merchant tmt ON tmt.id = tso.merchant_id
+		LEFT JOIN t_product tpt ON tpt.id = tsoi.product_id
+		WHERE
+			tsoi.product_id IN (
+				SELECT
+					tpp.product_id
+				FROM
+					tp_product_price tpp
+				LEFT JOIN tp_supplier tps ON tps.id = tpp.relation_id
+				WHERE
+					tpp.price_type = 1
+				AND tps.timearrival = 1
+			)
+		AND tso.checked_state = 2 
+		and tsoi.group_num LIKE CONCAT('%','${groupnum}','%' )
+	</select>
+	
+	
+	
+	<!-- 门店到货报表 -->
+	<select id="ReportlistPage" parameterType="page" resultType="pd">
+		SELECT
+			ta.area_name,
+			ta.area_num,
+			tm.id,
+			tm.merchant_name,
+			tm.merchant_num,
+			tm.short_name,
+			tm.address,
+			tm.contact_person,
+			tm.mobile,
+			sum(teoi.purchase_price*teoi.final_quantity) sumprice
+		FROM
+			t_ex_warehouse_order tewo
+		LEFT JOIN t_ex_order_item teoi ON tewo.order_num=teoi.order_num
+		LEFT JOIN t_merchant tm on tm.id=tewo.merchant_id
+		LEFT JOIN tm_area ta ON ta.id=tm.city
+		WHERE 1=1
+		<if test="pd.ROLE_ID==32">
+			<if test="pd.area_num!=null and pd.area_num!=''">
+				AND ta.area_num=#{pd.area_num}
+			</if>
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and tewo.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				and tm.merchant_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				and tm.merchant_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.type!=0">
+			and tewo.type=${pd.type}
+		</if>
+		and tewo.order_type=1
+		GROUP BY tewo.merchant_id
+		ORDER BY ta.id
+	</select>
+	
+	<!-- 门店到货报表导出 -->
+	<select id="listReportexport" parameterType="pd" resultType="pd">
+		SELECT
+			ta.area_name,
+			ta.area_num,
+			tm.id,
+			tm.merchant_name,
+			tm.merchant_num,
+			tm.short_name,
+			tm.address,
+			tm.contact_person,
+			tm.mobile,
+			sum(teoi.purchase_price*teoi.final_quantity) sumprice
+		FROM
+			t_ex_warehouse_order tewo
+		LEFT JOIN t_ex_order_item teoi ON tewo.order_num=teoi.order_num
+		LEFT JOIN t_merchant tm on tm.id=tewo.merchant_id
+		LEFT JOIN tm_area ta ON ta.id=tm.city
+		WHERE 1=1
+		<if test="ROLE_ID==32">
+			<if test="area_num!=null and area_num!=''">
+				AND ta.area_num=#{area_num}
+			</if>
+		</if>
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			<if test="searchcriteria==1">
+				and tewo.group_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==2">
+				and tm.merchant_name LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==3">
+				and tm.merchant_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+		</if>
+		<if test="type!=0">
+			and tewo.type=${type}
+		</if>
+		and tewo.order_type=1
+		GROUP BY tewo.merchant_id
+		ORDER BY ta.id
+	</select>
+	
+	<select id="monthlyreportlistPage" parameterType="page" resultType="pd">
+		SELECT
+			tm.id,
+			substring(tewo.group_num, 4) riqi,
+			RIGHT(tewo.group_num,2) a,
+			substring(tewo.group_num,8,2) b,
+			tewo.group_num,
+			tm.merchant_name,
+			tewo.order_num,
+			tewo.order_date,
+			abc.final_quantity final_quantity,
+			abc.sale_final_quantity,
+			abc.quantity quantity,
+			abc.sale_quantity sumprice,
+			COUNT(*) zdsl
+		FROM
+			t_ex_warehouse_order tewo
+		LEFT JOIN (
+				select
+					sum(quantity) quantity,
+					sum(final_quantity) final_quantity,
+					sum( purchase_price * quantity ) sale_quantity,
+	  				sum( purchase_price * final_quantity ) sale_final_quantity,
+					group_num from t_ex_order_item  GROUP BY group_num) abc on abc.group_num=tewo.group_num
+		LEFT JOIN t_merchant tm ON tm.id=tewo.merchant_id
+		LEFT JOIN tm_area ta ON ta.id=tm.city
+		WHERE
+			1=1
+		<if test="pd.ROLE_ID==32">
+			<if test="pd.area_num!=null and pd.area_num!=''">
+				AND ta.area_num=#{pd.area_num}
+			</if>
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and tm.merchant_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				and tewo.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		AND tewo.order_type = 1
+		AND tewo.type = 2
+		GROUP BY
+			tewo.group_num
+	</select>
+	
+	<!-- 月季情况报表导出 -->
+	<select id="monthlyreportexport" parameterType="pd" resultType="pd">
+		SELECT
+			tm.id,
+			substring(tewo.group_num, 4) riqi,
+			RIGHT(tewo.group_num,2) a,
+			substring(tewo.group_num,8,2) b,
+			tewo.group_num,
+			tm.merchant_name,
+			tewo.order_num,
+			tewo.order_date,
+			abc.final_quantity final_quantity,
+			abc.sale_final_quantity,
+			abc.quantity quantity,
+			abc.sale_quantity sumprice,
+			COUNT(*) zdsl
+		FROM
+			t_ex_warehouse_order tewo
+		LEFT JOIN (
+				select
+					sum(quantity) quantity,
+					sum(final_quantity) final_quantity,
+					sum( purchase_price * quantity ) sale_quantity,
+	  				sum( purchase_price * final_quantity ) sale_final_quantity,
+					group_num from t_ex_order_item  GROUP BY group_num) abc on abc.group_num=tewo.group_num
+		LEFT JOIN t_merchant tm ON tm.id=tewo.merchant_id
+		LEFT JOIN tm_area ta ON ta.id=tm.city
+		WHERE
+			1=1
+		<if test="ROLE_ID==32">
+			<if test="area_num!=null and area_num!=''">
+				AND ta.area_num=#{area_num}
+			</if>
+		</if>
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			<if test="searchcriteria==1">
+				and tm.merchant_name LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==2">
+				and tewo.group_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+		</if>
+		AND tewo.order_type = 1
+		AND tewo.type = 2
+		GROUP BY
+			tewo.group_num
+	</select>
+	
+	
+	<select id="monthlyjj" resultType="pd" parameterType="pd">
+		select count(*) qb,sum(teoi.sale_price*teoi.final_quantity) je
+		from t_ex_warehouse_order tewo
+		LEFT JOIN t_ex_order_item teoi on teoi.order_num=tewo.order_num
+		LEFT JOIN t_merchant tm ON tm.id=tewo.merchant_id
+		LEFT JOIN tm_area ta ON ta.id=tm.city
+		where 1=1
+		<if test="ROLE_ID==32">
+			<if test="area_num!=null and area_num!=''">
+				AND ta.area_num=#{area_num}
+			</if>
+		</if>
+			<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			<if test="searchcriteria==1">
+				and tm.merchant_name LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==2">
+				and tewo.group_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+		</if>
+		and tewo.order_type=1 and tewo.type=1 
+
+	</select>
+	
+	<select id="selectmerchant" parameterType="pd" resultType="pd">
+		select * from t_merchant
+	</select>
+	
+	<select id="selectEx" parameterType="pd" resultType="pd">
+		select order_num from t_ex_warehouse_order 
+		
+		where type=2 and order_type=1
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			   <if test="searchcriteria==1">
+			 	and  group_num LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			    <if test="searchcriteria==2">
+				   	 <if test="lastLoginStart!=null and lastLoginStart!=''">
+						and order_date &gt;= #{lastLoginStart}
+					</if>
+					<if test="lastLoginEnd !=null and lastLoginEnd!=''">
+						and order_date &lt;= #{lastLoginEnd}
+					</if>
+			   </if>
+			 </if>
+	</select>
+	
+	<!-- 计划单执行情况 -->
+	<select id="planimplementlistPage" parameterType="page" resultType="pd" >
+		SELECT
+			tmt.merchant_name,
+			tmt.merchant_num,
+			tmt.short_name,
+			tpoi.plan_order,
+			tewo.order_num,
+			tpoi.type,
+			tewo.group_num
+		FROM
+			t_ex_warehouse_order tewo
+		LEFT JOIN  t_plan_order_item tpoi ON tewo.order_num = tpoi.order_num
+		LEFT JOIN t_merchant tmt ON tmt.id = tewo.merchant_id
+		WHERE
+			tewo.type = 2
+		AND tewo.order_type = 1
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			   <if test="pd.searchcriteria==1">
+			 	and  tewo.group_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			 </if>
+			 <if test="pd.searchcriteria==2">
+				   	 <if test="pd.lastLoginStart!=null and pd.lastLoginStart!=''">
+						and tewo.create_time &gt;= #{pd.lastLoginStart}
+					</if>
+					<if test="pd.lastLoginEnd !=null and pd.lastLoginEnd!=''">
+						and tewo.create_time &lt;= #{pd.lastLoginEnd}
+					</if>
+			   </if>
+	</select>
+	
+	<select id="planimplementExcel" parameterType="pd" resultType="pd" >
+		SELECT
+			tmt.merchant_name,
+			tmt.merchant_num,
+			tmt.short_name,
+			tpoi.plan_order,
+			tewo.order_num,
+			tpoi.type,
+			tewo.group_num
+		FROM
+			t_ex_warehouse_order tewo
+		LEFT JOIN  t_plan_order_item tpoi ON tewo.order_num = tpoi.order_num
+		LEFT JOIN t_merchant tmt ON tmt.id = tewo.merchant_id
+		WHERE
+			tewo.type = 2
+		AND tewo.order_type = 1
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			   <if test="searchcriteria==1">
+			 	and  tewo.group_num LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			   
+		</if>
+		 <if test="searchcriteria==2">
+				   		 <if test="lastLoginStart!=null and lastLoginStart!=''">
+						and tewo.create_time &gt;= #{lastLoginStart}
+					</if>
+					<if test="lastLoginEnd !=null and lastLoginEnd!=''">
+						and tewo.create_time &lt;= #{lastLoginEnd}
+					</if>
+			   </if>
+	</select>
+	
+	
+	<select id="plandown" parameterType="pd" resultType="pd" >
+		select count(*) qb,count(tpoi.type=3 or NULL) ws
+
+		FROM
+			t_ex_warehouse_order tewo
+		LEFT JOIN  t_plan_order_item tpoi ON tewo.order_num = tpoi.order_num
+		LEFT JOIN t_merchant tmt on tmt.id=tewo.merchant_id
+		where tewo.type=2 and tewo.order_type=1
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			   <if test="searchcriteria==1">
+			 	and  tewo.group_num LIKE  CONCAT('%','${keyword}','%' )  
+			   </if>
+			   
+			 </if>
+			  <if test="searchcriteria==2">
+				   		 <if test="lastLoginStart!=null and lastLoginStart!=''">
+						and tewo.create_time &gt;= #{lastLoginStart}
+					</if>
+					<if test="lastLoginEnd !=null and lastLoginEnd!=''">
+						and tewo.create_time &lt;= #{lastLoginEnd}
+					</if>
+			   </if>
+	</select>
+	
+	<!-- 中央仓盘点明细 -->
+	<select id="findpdmxPage" parameterType="page" resultType="pd" >
+		select t1.classify_name,ifnull(sum(t.hos_number),0) pro_num ,IFNULL(sum(t.hos_amount),0) hos_amount , IFNULL(sum(inv.product_quantity),0) product_quantity 
+				,IFNULL(sum(inv.product_quantity * p1.product_price),0) price, ifnull(sum(t.hos_number),0) - IFNULL(sum(inv.product_quantity),0) as yksl
+				,IFNULL(sum(t.hos_amount),0) - IFNULL(sum(inv.product_quantity * p1.product_price),0) as ykje
+		 from t_hos_tab	t
+		RIGHT  JOIN t_product_inventory inv on inv.product_id = t.pro_id
+		LEFT JOIN t_product p on p.id =  inv.product_id
+		LEFT JOIN tp_product_type t1 on t1.id = p.product_type_id
+		LEFT JOIN tp_product_price p1 on  p1.product_id = p.id and p1.price_type = 1
+		GROUP BY t1.classify_name 
+		ORDER BY t1.id DESC
+	</select>
+	<!-- 中央仓盘点明细 -->
+	<select id="findpdmx" parameterType="pd" resultType="pd" >
+		select t1.classify_name,ifnull(sum(t.hos_number),0) pro_num ,IFNULL(sum(t.hos_amount),0) hos_amount , IFNULL(sum(inv.product_quantity),0) product_quantity 
+				,IFNULL(sum(inv.product_quantity * p1.product_price),0) price, ifnull(sum(t.hos_number),0) - IFNULL(sum(inv.product_quantity),0) as yksl
+				,IFNULL(sum(t.hos_amount),0) - IFNULL(sum(inv.product_quantity * p1.product_price),0) as ykje
+		 from t_hos_tab	t
+		RIGHT  JOIN t_product_inventory inv on inv.product_id = t.pro_id
+		LEFT JOIN t_product p on p.id =  inv.product_id
+		LEFT JOIN tp_product_type t1 on t1.id = p.product_type_id
+		LEFT JOIN tp_product_price p1 on  p1.product_id = p.id and p1.price_type = 1
+		GROUP BY t1.classify_name 
+		ORDER BY t1.id DESC
+	</select>
+	
+	<!-- 根据商品编码和商品条形码查询商品信息 -->
+	<select id="findpro" parameterType="pd" resultType="pd">
+		select * from t_product t 
+			where t.bar_code = #{barcode}
+			and t.product_num = #{pronum} 
+	</select>
+	<!-- 根据商品id和商品日期查询库存 -->
+	<select id="findKC" parameterType="pd" resultType="pd">
+		select * from t_product_inventory t where t.product_id = #{product_id} and t.product_date  like '%${product_date}%'   
+	</select>
+	<!-- 更新库存信息 -->
+	<update id="updateKC" parameterType="pd">
+		UPDATE t_product_inventory t set t.product_quantity = #{product_quantity}  where t.product_id = #{product_id} and t.product_date  like '%${product_date}%' 
+	</update>
+	
+	<!-- 清空hos表数据 -->
+	<delete id="deletehos">
+		TRUNCATE t_hos_tab 
+	</delete>
+	<!-- 批量导入HOS表数据 -->
+	<insert id="saveHOSList" parameterType="java.util.List">
+		INSERT into t_hos_tab (hos_number,hos_amount,pro_num,pro_id) VALUES
+		<foreach item="item" collection="list"  separator=",">
+			(#{item.hos_number},#{item.hos_amount},#{item.pro_num}, #{item.pro_id})
+		</foreach>	
+	</insert>
+	<!-- 批量导入库存表数据 -->
+	<insert id="saveKC" parameterType="java.util.List">
+		INSERT into t_product_inventory (product_id,warehouse_id,cargo_space_id,product_quantity,state,total_price,remarks,ck_id,product_date) 
+		VALUES
+		<foreach item="item" collection="list"  separator=",">
+			(#{item.product_id},#{item.warehouse_id},#{item.cargo_space_id}, #{item.product_quantity}
+			, 1,0,'',1, #{item.product_date})
+		</foreach>	
+	</insert>
+</mapper>

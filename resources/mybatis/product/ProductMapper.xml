@@ -1,0 +1,2045 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ProductMapper">
+
+<select id="getManagementproductlistPage" parameterType="page"
+		resultType="pd">
+		select tpt.bar_code,tpt.product_num,tpt.product_name,tsr.* from t_sales_rankings tsr
+		LEFT JOIN t_product tpt on tpt.id=tsr.product_id
+		where 1=1
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tpt.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tpt.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tpt.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		order by tsr.id desc
+		</select>
+
+
+<select id="findproductunitname"  resultType="pd">
+		SELECT 
+			*
+		FROM 
+			tp_meterage_unit
+	</select>	
+
+
+
+
+	<update id="updateActivityproduct" parameterType="pd">
+		update t_product_activity
+		set product_id=${product_id},
+			quantity=${quantity},
+			product_activity=${product_activity},
+			final_quantity=${final_quantity},
+			type=${type},
+			<!-- t_sId=#{stagenumber}, -->
+		    begintime=#{begintime},
+		    endtime=#{endtime}
+		    <if test="type==2">
+		    	,state=2
+		    </if>
+		where id=${id}
+	
+	</update>
+
+	<insert id="saveActivityproduct" parameterType="pd">
+		insert into t_product_activity (
+			product_id,
+			quantity,
+		 	product_activity,
+		    final_quantity,
+		    creator,
+		    <!-- t_sId, -->
+		    begintime,
+		    endtime
+		)VALUES(
+			${product_id},
+			${quantity},
+			${product_activity},
+			${final_quantity},
+			#{creator},
+			<!-- #{stagenumber}, -->
+			#{begintime},
+			#{endtime}
+		) 
+			
+	</insert>
+	
+	<select id="getproductActivitylistPage" parameterType="page" resultType="pd">
+		select tpa.*,tpt.bar_code,tpt.product_name,
+		tpp.bar_code abar_code,tpp.product_name aproduct_name,ts.stagenumber
+		from t_product_activity tpa
+		left join t_product tpt on tpa.product_id=tpt.id
+		LEFT JOIN t_product tpp on tpp.id=tpa.product_activity
+		LEFT JOIN t_stagenumber ts ON ts.id=tpa.t_sId
+		LEFT JOIN tp_product_price AS tppc ON tppc.product_id=tpt.id AND tppc.price_type = 1
+		LEFT JOIN tp_supplier tsr ON tsr.id=tppc.relation_id
+		where 1=1
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tpt.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tpt.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				ts.stagenumber LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.state!=null and pd.state!=''">
+			and tpa.state=#{pd.state}
+		</if>
+		<if test="pd.id!=null and pd.id!=''">
+			and tpa.id=${pd.id}
+		</if>
+		<if test="pd.USERNAME!=null and pd.USERNAME!='' and pd.USERNAME!='admin' and pd.USERNAME!='dongcaixiu' and pd.ROLE_ID!=32">
+			AND tsr.contact_person_mobile=#{pd.USERNAME}
+		</if>
+		order by tpa.type asc,tpa.id desc		
+	</select>
+	
+	<select id="findproductActivity" parameterType="pd"  resultType="pd">
+		select tpa.*,tpt.bar_code,tpt.product_name,
+		tpp.bar_code abar_code,tpp.product_name aproduct_name,ts.stagenumber
+		from t_product_activity tpa
+		left join t_product tpt on tpa.product_id=tpt.id
+		LEFT JOIN t_product tpp on tpp.id=tpa.product_activity
+		LEFT JOIN t_stagenumber ts ON ts.id=tpa.t_sId
+		where 1=1
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="searchcriteria==1">
+				tpt.product_name LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==2">
+				tpt.bar_code LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==3">
+				ts.stagenumber LIKE CONCAT('%','${keyword}','%' )
+			</if>
+		</if>
+		<if test="id!=null and id!=''">
+			and tpa.id=${id}
+		</if>
+		order by tpa.type asc,tpa.id desc		
+	</select>
+	
+	
+	<!-- 查询商品信息 -->
+
+	<select id="getActivityproductlistPage" parameterType="page"
+		resultType="pd">
+		SELECT
+		tp.ID,
+		tp.PRODUCT_NAME,
+		tp.PRODUCT_NUM,
+		tp.BAR_CODE,
+		tp.UNIT,
+		tp.EXPIRE_DAYS,
+		tp.CREATOR,
+		tp.CREATE_TIME,
+		tp.MIN_STOCK_NUM,
+		tp.MAX_STOCK_NUM,
+		tp.HOST_CODE,
+		tp.IS_SHELVE,
+		tp.fcl_weight,
+		tp.sku_weight,
+		tp.WEIGHT_UNIT,
+		tp.TAXES,
+		tp.SKU_VOLUME,
+		tp.FCL_VOLUME,
+		tp.STORE_METHOD,
+		tp.STORE_METHOD_CONSULTING_TELEPHONE,
+		tp.USAGE_MODE,
+		tp.ORIGIN_PLACE,
+		tp.REMARKS,
+		tp.PRODUCT_TYPE_ID,
+		tpp.id as tppid
+		FROM
+		t_product as tp
+		LEFT JOIN tp_product_price tpp on tpp.product_id =tp.id AND tpp.price_type = 1
+		LEFT JOIN tp_supplier as ts ON ts.id=tpp.relation_id
+		LEFT JOIN t_product_activity as tpa ON  tpa.product_id = tp.id
+		WHERE  (select id from t_product_activity where product_id = tp.id and type = 1 and state = 1  and effective_time &lt; NOW()  AND NOW() BETWEEN begintime and endtime) is NULL
+		and tp.is_shelve=1
+		<if test="pd.USERNAME!=null and pd.USERNAME!='' and pd.USERNAME!='admin'">
+			AND ts.contact_person_mobile=#{pd.USERNAME}
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		order by tp.id desc
+	</select>
+	
+	
+	<insert id="saverankings" parameterType="java.util.List">
+		INSERT INTO t_sales_rankings
+		(
+			product_id,
+			quantity,
+			cash_register,
+			small_ticket,
+			s_time,
+			sell_time,
+			sale_price,
+			ammount,
+			final_ammount
+		)values
+		<foreach collection="list" item="item" separator="," >
+			(
+				${item.product_id},
+				${item.quantity},
+				#{item.cash_register},
+				#{item.small_ticket},
+				#{item.s_time},
+				#{item.sell_time},
+				#{item.sale_price},
+				${item.ammount},
+				${item.final_ammount}
+			)
+		</foreach>
+	
+	</insert>
+
+
+	<select id="handheldfindProductScancode" parameterType="pd"
+		resultType="pd">
+		select
+		tpt.id,tcs.id,tpi.id,tpt.product_num,tpt.bar_code,product_name,tpt.specification,tcs.zone,tcs.storey,tcs.storey_num
+
+		from t_product tpt
+		LEFT JOIN t_product_inventory tpi on tpt.id=tpi.product_id and tpi.warehouse_id=1
+		left join tp_cargo_space tcs on tcs.id=tpt.cargo_space_id
+
+		where tpt.bar_code=#{bar_code}
+
+	</select>
+	<select id="handheldCargoSpace" resultType="pd" parameterType="pd">
+		select * from tp_cargo_space
+		where zone=#{zone}
+		and storey=${storey}
+		and
+		storey_num=${storey_num}
+		LIMIT 1
+	</select>
+
+	<!-- 商品详情页更新 -->
+	<select id="finProductByIdupdate" parameterType="pd" resultType="pd">
+		SELECT
+		tp.id,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.expire_days,
+		tp.creator,
+		tp.is_shelve,
+		tp.host_code,
+		tp.min_stock_num,
+		tp.min_order_num,
+		tp.max_stock_num,
+		tp.sku_weight,
+		tp.box_number,
+		tp.specification,
+		tp.fcl_weight,
+		tp.weight_unit,
+		tp.taxes,
+		tp.sku_volume,
+		tp.fcl_volume,
+		tp.store_method,
+		tp.store_method_consulting_telephone,
+		tp.usage_mode,
+		tp.origin_place,
+		tp.remarks,
+		<!-- tpi.id AS tpiId,
+		tpi.product_quantity,
+		tpi.state, -->
+		tpt.classify_name,
+		tpt.id AS tptId,
+		tcs.id AS tcsid,
+		tcs.storey,
+		tcs.storey_num,
+		tcs.zone,
+		ts.id AS tsId,
+		ts.supplier_name,
+		ts.contact_person,
+		ts.contact_person_mobile,
+		ts.address,
+		ts.supplier_num,
+		tmu.unit_name,
+		tmu.id AS tmuId,
+		tpp.id AS tppId,
+		tpp.product_price,
+		tppa.product_price AS tppaproduct_price,
+		tp.packing_measurement_id,
+		tp.proimage,
+		tp.unit,
+		tp.newproduct_time,
+		tp.type,
+		tp.bursting,
+		tp.is_th
+		FROM
+		t_product tp
+		<!-- LEFT JOIN t_product_inventory tpi ON tpi.product_id=tp.id and tpi.state = 1 and tpi.warehouse_id=1 and tpi.ck_id=${ck_id} -->
+		LEFT JOIN tp_product_type tpt ON tpt.id = tp.product_type_id
+		LEFT JOIN tp_cargo_space tcs ON tcs.id = tp.cargo_space_id
+		LEFT JOIN tp_product_price tpp ON tp.id=tpp.product_id and tpp.price_type = 1
+		LEFT JOIN tp_supplier ts ON ts.id=tpp.relation_id and ts.state = 1
+		LEFT JOIN tp_product_price tppa ON tppa.product_id = tp.id AND tppa.price_type = 2
+		LEFT JOIN tp_meterage_unit tmu ON tmu.id = tp.unit
+		WHERE
+		tp.id=#{productId}
+		LIMIT
+		1;
+	</select>
+
+	<!-- 商品详情页更新 -->
+	<select id="finProductById" parameterType="Long" resultType="pd">
+		SELECT
+		tp.id,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.expire_days,
+		tp.creator,
+		tp.is_shelve,
+		tp.host_code,
+		tp.min_stock_num,
+		tp.max_stock_num,
+		tp.sku_weight,
+		tp.box_number,
+		tp.specification,
+		tp.fcl_weight,
+		tp.weight_unit,
+		tp.taxes,
+		tp.sku_volume,
+		tp.fcl_volume,
+		tp.store_method,
+		tp.store_method_consulting_telephone,
+		tp.usage_mode,
+		tp.origin_place,
+		tp.remarks,
+		tpi.id AS tpiId,
+		tpi.product_quantity,
+		tpi.state,
+		tpt.classify_name,
+		tpt.id AS tptId,
+		tcs.id AS tcsid,
+		tcs.storey,
+		tcs.storey_num,
+		tcs.zone,
+		ts.id AS tsId,
+		ts.supplier_name,
+		ts.contact_person,
+		ts.contact_person_mobile,
+		ts.address,
+		ts.supplier_num,
+		tmu.unit_name,
+		tmu.id AS tmuId,
+		tpp.id AS tppId,
+		tpp.product_price,
+		tppa.product_price AS tppaproduct_price,
+		tp.packing_measurement_id
+		FROM
+		t_product tp
+		LEFT JOIN t_product_inventory
+		tpi ON tpi.product_id=tp.id and tpi.state =
+		1 and tpi.warehouse_id=1
+		LEFT JOIN tp_product_type tpt ON tpt.id = tp.product_type_id
+		LEFT JOIN
+		tp_cargo_space tcs ON tcs.id = tp.cargo_space_id
+		LEFT JOIN
+		tp_product_price tpp ON tp.id=tpp.product_id and tpp.price_type
+		= 1
+		LEFT JOIN tp_supplier ts ON ts.id=tpp.relation_id and ts.state = 1
+		LEFT JOIN tp_product_price tppa ON tppa.product_id = tp.id AND
+		tppa.price_type = 2
+		LEFT JOIN tp_meterage_unit tmu ON tmu.id = tp.unit
+		WHERE
+		tp.id=#{productId}
+		LIMIT 1;
+	</select>
+	<!-- 根据ID查询商品详情 -->
+	<select id="findByIdOrBarCode" resultMap="productResultMap">
+		select
+		ID,
+		PRODUCT_NAME,
+		PRODUCT_NUM,
+		BAR_CODE,
+		UNIT,
+		EXPIRE_DAYS,
+		CREATOR,
+		CREATE_TIME,
+		MIN_STOCK_NUM,
+		MAX_STOCK_NUM,
+		HOST_CODE,
+		IS_SHELVE,
+		SKU_WEIGHT,
+		FCL_WEIGHT,
+		WEIGHT_UNIT,
+		TAXES,
+		SKU_VOLUME,
+		FCL_VOLUME,
+		STORE_METHOD,
+		STORE_METHOD_CONSULTING_TELEPHONE,
+		USAGE_MODE,
+		ORIGIN_PLACE,
+		REMARKS,
+		PRODUCT_TYPE_ID
+		from t_product
+		where is_shelve=1
+		<if test="id!=null and id!='' and id>0">
+			and id=#{id}
+		</if>
+		<if test="barCode!=null and barCode!=''">
+			and bar_code=#{barCode}
+		</if>
+		<if test="product_num!=null and product_num!=''">
+			and product_num=#{product_num}
+		</if>
+		<if test="product_name!=null and product_name!=''">
+			and product_num=#{product_num}
+		</if>
+		<if test="hostCode!=null and hostCode!=''">
+			and host_code=#{hostCode}
+		</if>
+	</select>
+	<!-- 查询商品信息关联供应商、商品价格、商品库存信息 -->
+	<select id="findProductInfoById" parameterType="long"
+		resultType="pd">
+		SELECT
+		tp.id,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.expire_days,
+		tp.creator,
+		tp.host_code,
+		tp.min_stock_num,
+		tp.max_stock_num,
+		tp.sku_weight,
+		tp.fcl_weight,
+		tp.weight_unit,
+		tp.taxes,
+		tp.sku_volume,
+		tp.fcl_volume,
+		tp.store_method,
+		tp.store_method_consulting_telephone,
+		tp.usage_mode,
+		tp.origin_place,
+		tp.remarks,
+		ts.id AS tsId,
+		ts.supplier_name,
+		ts.contact_person,
+		ts.contact_person_mobile,
+		ts.address,
+		ts.supplier_num,
+		tpi.id AS tpiId,
+		tpi.product_quantity,
+		tpi.state,
+		tpp.id AS tppId,
+		tpp.product_price,
+		tppa.product_price AS tppaproduct_price,
+		tpt.classify_name,
+		tpt.id AS
+		tptId,
+		tcs.id AS tcsid,
+		tcs.storey,
+		tcs.storey_num,
+		tcs.zone,
+		tmu.unit_name,
+		tmu.id AS tmuId
+		FROM
+		tp_supplier ts
+
+		left join
+		tp_product_price tpp on tpp.relation_id = ts.id and
+		tpp.supplier_priority = 1 and tpp.price_type = 1
+		left join t_product tp on tpp.product_id = tp.id
+		left join tp_product_price tppa on tppa.product_id = tp.id AND tppa.price_type = 2
+
+		left join
+		t_product_inventory tpi on tpi.product_id = tp.id and tpi.warehouse_id = 1 AND tpi.state = 1
+		left join tp_product_type tpt on tpt.id =
+		tp.product_type_id
+		left join tp_cargo_space tcs on tcs.id = tp.cargo_space_id
+		left join tp_meterage_unit tmu on tmu.id = tp.unit
+		WHERE
+		tp.is_shelve = 1
+		AND ts.state = 1
+		AND tp.id = #{productId}
+		LIMIT 1;
+
+	</select>
+	<!-- 查询商品信息关联供应商、商品价格、商品库存信息 -->
+
+	<resultMap type="com.hy.entity.product.Product" id="productResultMap">
+		<id column="id" property="id" />
+		<result column="product_name" property="productName" />
+		<result column="product_num" property="productNum" />
+		<result column="bar_code" property="barCode" />
+		<result column="unit" property="unit" />
+		<result column="expire_days" property="expireDays" />
+		<result column="creator" property="creator" />
+		<result column="create_time" property="createTime" />
+		<result column="minstock_num" property="minStockNum" />
+		<result column="host_code" property="hostCode" />
+		<result column="is_shelve" property="isShelve" />
+		<result column="fcl_weight" property="fclWeight" />
+		<result column="sku_weight" property="skuWeight" />
+		<result column="weight_unit" property="weightUnit" />
+		<result column="sku_volume" property="skuVolume" />
+		<result column="fcl_volume" property="fclVolume" />
+		<result column="box_number" property="boxNumber" />
+		<result column="store_method" property="storeMethod" />
+		<result column="store_method_consulting_telephone" property="storeMethodConsultingTelephone" />
+		<result column="usage_mode" property="usageMode" />
+		<result column="origin_place" property="originPlace" />
+		<result column="remarks" property="remarks" />
+		<association property="ptype" column="product_type_id"
+			select="findPtype">
+
+		</association>
+
+		<association property="cargoSpace" column="cargo_space_id"
+			select="findCargo">
+
+		</association>
+		<association property="warehouse" column="warehouse_id"
+			select="findWare">
+
+		</association>
+	</resultMap>
+
+
+
+	<select id="findPtype" resultType="com.hy.entity.product.ProductType">
+		select
+		ID,
+		CLASSIFY_NAME,
+		LEVEL,
+		STATE,
+		PARENT_ID
+		from tp_product_type where id=#{product_type_id}
+	</select>
+	<select id="findPriceOfProduct" resultType="pd">
+		select
+		tp.id tpId,
+		tppp.product_price
+		from t_product tp,tp_product_price tppp
+		where
+		tp.id=#{product_id}
+		AND tppp.product_id=tp.id AND
+		tppp.supplier_priority=1
+		AND tppp.price_type = #{price_type};
+	</select>
+
+	<select id="findPriceOfProduct2" resultType="pd">
+		select
+		tp.id tpId,
+		tppp.product_price
+		from t_product tp,tp_product_price tppp
+		where
+		tp.id=#{product_id}
+		AND tppp.product_id=tp.id AND
+		tppp.supplier_priority=99
+		AND tppp.price_type = #{price_type};
+	</select>
+	<!-- 通过商品编码和barcode获取数据 -->
+	<select id="findProductByBarcodeAndHcode" resultType="pd">
+		SELECT
+		tp.id tpId
+		FROM t_product tp
+		WHERE
+		tp.bar_code=#{bar_code}
+		and tp.product_num = #{product_num};
+	</select>
+	<select id="findCargo" resultType="com.hy.entity.product.CargoSpace">
+		select
+		id,
+		ZONE,
+		STOREY,
+		STOREY_NUM as storeyNum
+		from tp_cargo_space where id=#{cargo_space_id}
+	</select>
+	<select id="findWare" resultType="com.hy.entity.inventory.Warehouse">
+		select
+		WAREHOUSE_NAME,
+		WAREHOUSE_ADDRESS,
+		WAREHOUSE_TEL,
+		WAREHOUSE_NUMBER,
+		WAREHOUSE_TYPE,
+		id
+		from tp_warehouse where id=#{warehouse_id}
+	</select>
+	<!-- 根据ID查询商品详情结束 -->
+	<!-- 列表(全部) -->
+	<select id="procductlistPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT
+		tp.id,
+		tp.product_name,
+		tp.product_num,
+		tp.box_number,
+		tp.bar_code,
+		tp.unit,
+		tp.expire_days,
+		tp.creator,
+		tp.create_time,
+		tp.min_stock_num,
+		tp.min_order_num,
+		tp.max_stock_num,
+		tp.host_code,
+		tp.is_shelve,
+		tp.specification,
+		tpy.classify_name,
+		tcs.cargo_space_num,
+		tcs.zone,
+		tcs.storey,
+		tcs.storey_num,
+		tppc.product_price AS c,
+		tpps.product_price AS s,
+		tp.type,
+		tp.bursting,
+		tmu.unit_name,
+		if(
+		(
+		(ts.supplier_name like '%昆仑好客%')
+		or (tp.product_name like '%昆悦%')
+		or (tp.product_name like '%红牛%')
+		or (tp.product_name like '%武夷山%')
+		or (tp.product_name like '%坚果帮%')
+		or (tp.product_name like '%东北冰原%')
+		),0,1) kl
+		FROM
+		t_product tp
+		left join tp_product_type tpy on tp.product_type_id = tpy.id
+		<!-- 	left join t_product_inventory tpi on tpi.product_id = tp.id and tpi.ck_id=${pd.ck_id} and tpi.warehouse_id=1 -->
+		left join tp_cargo_space tcs on tcs.id = tp.cargo_space_id
+		left join tp_product_price tppc on tppc.product_id = tp.id and tppc.price_type = 1
+		left join tp_product_price tpps on tpps.price_type = 2 AND tpps.product_id = tp.id
+		left join tp_meterage_unit tmu on tmu.id=tp.unit
+		LEFT JOIN tp_supplier ts ON ts.id=tppc.relation_id
+		WHERE
+		1=1
+		<if test="pd.is_shelve != null and pd.is_shelve != ''">
+			and tp.is_shelve = #{pd.is_shelve}
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tpy.classify_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==5">
+				tp.creator LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==6">
+				tp.unit LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+
+		</if>
+		<if test="pd.bursting!=null and pd.bursting!='' ">
+			and tp.bursting=#{pd.bursting}
+		</if>
+		<if test="pd.USERNAME!=null and pd.USERNAME!='' and pd.USERNAME!='admin'">
+			and ts.contact_person_mobile=#{pd.USERNAME}
+		</if>
+		order by tp.id desc
+	</select>
+	<!-- 商品库存列表(全部) -->
+	<select id="inventoryOfProcductlistPage" parameterType="page"
+		resultType="pd" useCache="false">
+		SELECT
+		tp.id,
+		tp.bar_code ,
+		tp.host_code ,
+		tp.product_name ,
+		tp.product_num ,
+		tp.min_stock_num ,
+		tp.max_stock_num ,
+		SUM(tpi.product_quantity)  product_quantity,
+		tpi.state,
+		tpy.classify_name,
+		tpw.warehouse_name,
+		tpmu.unit_name,
+		tpcs.zone,
+		tpcs.storey,
+		tpcs.storey_num
+		FROM t_product_inventory tpi,tp_warehouse tpw,tp_cargo_space
+		tpcs,t_product tp
+		LEFT JOIN tp_product_type tpy ON
+		tp.product_type_id=tpy.id
+		LEFT JOIN
+		tp_meterage_unit tpmu ON
+		tpmu.id=tp.unit
+		WHERE tpi.product_id=tp.id AND tpi.warehouse_id=tpw.id
+		and product_quantity > 0
+		AND
+		tp.cargo_space_id=tpcs.id
+		<if test="pd.ck_id!=0">
+			and tpi.ck_id=${pd.ck_id}
+		</if>
+		<if test="pd.warehouse_id!=null">
+			and tpi.warehouse_id=${pd.warehouse_id}
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				AND tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				AND tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				AND tpy.classify_name LIKE CONCAT('%','${pd.keyword}','%'
+				)
+			</if>
+			<if test="pd.searchcriteria==4">
+				AND tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==5">
+				AND tp.creator LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==6">
+				AND tpmu.unit_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		GROUP BY tp.product_num
+		order by product_quantity desc
+	</select>
+	<!-- 保存商品 -->
+	<insert id="save" parameterType="pd" keyProperty="id">
+		insert into
+		t_product(
+		PRODUCT_NAME,
+		PRODUCT_NUM,
+		BAR_CODE,
+		UNIT,
+		EXPIRE_DAYS,
+		CREATOR,
+		CREATE_TIME,
+		MIN_STOCK_NUM,
+		MAX_STOCK_NUM,
+		HOST_CODE,
+		IS_SHELVE,
+		FCL_WEIGHT,
+		SKU_WEIGHT,
+		WEIGHT_UNIT,
+		TAXES,
+		SKU_VOLUME,
+		FCL_VOLUME,
+		STORE_METHOD,
+		STORE_METHOD_CONSULTING_TELEPHONE,
+		USAGE_MODE,
+		ORIGIN_PLACE,
+		REMARKS,
+		PRODUCT_TYPE_ID,
+		packing_measurement_id,
+		box_number,
+		VOLUME_UNIT,
+		SPECIFICATION,
+		proimage
+		) values (
+		#{PRODUCT_NAME},
+		#{PRODUCT_NUM},
+		#{BAR_CODE},
+		#{UNIT},
+		#{EXPIRE_DAYS},
+		#{CREATOR},
+		#{CREATE_TIME},
+		#{MIN_STOCK_NUM},
+		#{MAX_STOCK_NUM},
+		#{HOST_CODE},
+		#{IS_SHELVE},
+		#{FCL_WEIGHT},
+		#{SKU_WEIGHT},
+		#{WEIGHT_UNIT},
+		#{TAXES},
+		#{SKU_VOLUME},
+		#{FCL_VOLUME},
+		#{STORE_METHOD},
+		#{STORE_METHOD_CONSULTING_TELEPHONE},
+		#{USAGE_MODE},
+		#{ORIGIN_PLACE},
+		#{REMARKS},
+		#{PRODUCT_TYPE_ID},
+		#{packing_measurement_id},
+		#{box_number},
+		#{VOLUME_UNIT},
+		#{SPECIFICATION},
+		#{proimage}
+		)
+	</insert>
+	<!-- 批量保存商品 -->
+	<insert id="saveOfp" parameterType="pd" keyProperty="id">
+		insert into
+		t_product(
+		PRODUCT_NAME,
+		PRODUCT_NUM,
+		BAR_CODE,
+		UNIT,
+		EXPIRE_DAYS,
+		CREATOR,
+		CREATE_TIME,
+		MIN_STOCK_NUM,
+		MAX_STOCK_NUM,
+		HOST_CODE,
+		IS_SHELVE,
+		FCL_WEIGHT,
+		sku_weight,
+		WEIGHT_UNIT,
+		TAXES,
+		sku_volume,
+		FCL_VOLUME,
+		STORE_METHOD,
+		STORE_METHOD_CONSULTING_TELEPHONE,
+		USAGE_MODE,
+		ORIGIN_PLACE,
+		REMARKS,
+		PRODUCT_TYPE_ID,
+		packing_measurement_id,
+		box_number,
+		VOLUME_UNIT,
+		SPECIFICATION,
+		cargo_space_id,
+		type
+		) values (
+		#{product_name},
+		#{PRODUCT_NUM},
+		#{bar_code},
+		#{unit},
+		#{expire_days},
+		#{CREATOR},
+		#{CREATE_TIME},
+		#{MIN_STOCK_NUM},
+		#{MAX_STOCK_NUM},
+		#{host_code},
+		#{IS_SHELVE},
+		#{fcl_weight},
+		#{sku_weight},
+		#{WEIGHT_UNIT},
+		#{TAXES},
+		#{sku_volume},
+		#{fcl_volume},
+		#{STORE_METHOD},
+		#{STORE_METHOD_CONSULTING_TELEPHONE},
+		#{USAGE_MODE},
+		#{ORIGIN_PLACE},
+		#{REMARKS},
+		#{product_type_id},
+		#{packing_measurement_id},
+		#{box_number},
+		#{VOLUME_UNIT},
+		#{specification},
+		#{cargo_space_id},
+		${type}
+		)
+	</insert>
+	<insert id="saveProductPacking" parameterType="pd" keyProperty="id">
+		INSERT INTO tp_packing_measurement(
+		meterage_unit_id,
+		parent_id,
+		packing_util_num,
+		is_choosed
+		)
+		VALUES
+		(
+		#{meterage_unit_id},
+		#{parent_id},
+		#{packing_util_num},
+		#{is_choosed}
+		)
+	</insert>
+	<!-- 更新箱装数 -->
+	<update id="updateProductPacking" parameterType="pd">
+		update
+		tp_packing_measurement
+		set
+		packing_util_num=#{box_number}
+		where
+		id =
+		#{packing_measurement_id}
+	</update>
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update t_product
+		set
+		PRODUCT_NAME= #{PRODUCT_NAME},
+		BAR_CODE = #{BAR_CODE},
+		UNIT = #{UNIT},
+		EXPIRE_DAYS =#{EXPIRE_DAYS},
+		CREATOR = #{CREATOR},
+		MIN_STOCK_NUM = #{MIN_STOCK_NUM},
+		MAX_STOCK_NUM = #{MAX_STOCK_NUM},
+		HOST_CODE = #{HOST_CODE},
+		WEIGHT_UNIT= #{WEIGHT_UNIT},
+		TAXES = #{TAXES},
+		box_number=#{box_number},
+		min_order_num=#{min_order_num},
+		sku_volume=#{sku_volume},
+		sku_weight=#{sku_weight},
+		FCL_VOLUME =#{FCL_VOLUME},
+		FCL_WEIGHT= #{FCL_WEIGHT},
+		VOLUME_UNIT = #{VOLUME_UNIT},
+		STORE_METHOD = #{STORE_METHOD},
+		STORE_METHOD_CONSULTING_TELEPHONE =#{STORE_METHOD_CONSULTING_TELEPHONE},
+		USAGE_MODE = #{USAGE_MODE},
+		ORIGIN_PLACE = #{ORIGIN_PLACE},
+		IS_SHELVE=#{IS_SHELVE},
+		REMARKS =#{REMARKS},
+		PRODUCT_TYPE_ID = #{PRODUCT_TYPE_ID},
+		SPECIFICATION=#{SPECIFICATION},
+		product_num=#{product_num},
+		cargo_space_id=${cargo_space_id}
+		<if test="type!=null and type!=''">
+		,type=${type}
+		</if>
+		<if test="bursting!=null and bursting!=''">
+		,bursting=${bursting}
+		</if>
+		<if test="proimage!=null and proimage!=''">
+		,proimage=#{proimage}
+		</if>
+		<if test="is_th!=null and is_th!=''">
+		,is_th=#{is_th}
+		</if>
+		
+		where
+		id = #{id}
+	</update>
+
+	<!-- 删除用户 -->
+	<delete id="deleteproduct" parameterType="pd" flushCache="false">
+		delete
+		from t_product
+		where
+		id = #{id};
+	</delete>
+
+	<!-- 批量删除用户 -->
+	<delete id="deleteAllProduct" parameterType="String" flushCache="false">
+		delete from t_product
+		where
+		id in
+		<foreach item="item" index="index" collection="array" open="("
+			separator="," close=")">
+			#{item}
+		</foreach>
+		;
+	</delete>
+	<!-- 导出商品excel -->
+	<select id="excel" parameterType="page" resultType="pd">
+		SELECT
+		tp.id,
+		tp.product_num '商品编码',
+		tp.product_name '商品名称',
+		tp.bar_code '商品条形码',
+		tp.min_order_num '商品最小起订量',
+		tp.box_number '商品箱装数',
+		tmu.unit_name '单位名称',
+		tp.specification '规格',
+
+		IF (
+		tp.is_shelve = 1,
+		'在售',
+		'停供'
+		) '状态',
+		tppp2.product_price '零售价',
+		tppp.product_price '供货价',
+
+		IF (
+		(
+		(
+		tps.supplier_name LIKE '%昆仑好客%'
+		)
+		OR (
+		tp.product_name LIKE '%昆悦%'
+		)
+		OR (
+		tp.product_name LIKE '%红牛%'
+		)
+		OR (
+		tp.product_name LIKE '%武夷山%'
+		)
+		OR (
+		tp.product_name LIKE '%坚果帮%'
+		)
+		OR (
+		tp.product_name LIKE '%东北冰源%'
+		)
+		),
+		'集采',
+		'统采'
+		) '集采/统采',
+
+		IF (
+		(
+		(
+		tp.product_name LIKE '%战马%'
+		)
+		OR (
+		tp.product_name LIKE '%昆悦%'
+		)
+		OR (
+		tp.product_name LIKE '%红牛%'
+		)
+		OR (
+		tp.product_name LIKE '%武夷山%'
+		)
+		OR (
+		tp.product_name LIKE '%坚果帮%'
+		)
+		OR (
+		tp.product_name LIKE '%东北冰原%'
+		)
+		),
+		'80A1',
+		tps.supplier_num
+		) '供应商编码',
+
+		IF (
+		(
+		(
+		tp.product_name LIKE '%战马%'
+		)
+		OR (
+		tp.product_name LIKE '%昆悦%'
+		)
+		OR (
+		tp.product_name LIKE '%红牛%'
+		)
+		OR (
+		tp.product_name LIKE '%武夷山%'
+		)
+		OR (
+		tp.product_name LIKE '%坚果帮%'
+		)
+		OR (
+		tp.product_name LIKE '%东北冰原%'
+		)
+		),
+		CONCAT('中石油昆仑好客有限公司(',tps.supplier_name,')'),
+		tps.supplier_name
+		) '供应商名称',
+		tps.contact_person '供应商联系人',
+		tps.contact_person_mobile '供应商联系人电话'
+		FROM
+		t_product tp,
+		tp_supplier tps,
+		tp_product_price tppp,
+		tp_product_price tppp2,
+		tp_meterage_unit tmu
+		WHERE
+		tp.id = tppp.product_id
+		AND tppp.relation_id = tps.id
+		AND tmu.id = tp.unit
+		AND tppp.price_type = 1
+		AND tp.id = tppp2.product_id
+		AND tppp2.relation_id = 0
+		AND tppp2.price_type = 2
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+
+			<if test="pd.searchcriteria==4">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==5">
+				tp.creator LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==6">
+				tp.unit LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.USERNAME!=null and pd.USERNAME!='' and pd.USERNAME!='admin'">
+			and ts.supplier_tel=#{pd.USERNAME}
+		</if>
+		ORDER BY tps.id ,tp.is_shelve
+	</select>
+
+
+	<!-- 查询商品信息 -->
+
+	<select id="findProductlistPage" parameterType="page"
+		resultType="pd">
+
+		SELECT
+		tp.ID,
+		tp.PRODUCT_NAME,
+		tp.PRODUCT_NUM,
+		tp.BAR_CODE,
+		tp.UNIT,
+		tp.EXPIRE_DAYS,
+		tp.CREATOR,
+		tp.CREATE_TIME,
+		tp.MIN_STOCK_NUM,
+		tp.MAX_STOCK_NUM,
+		tp.HOST_CODE,
+		tp.IS_SHELVE,
+		tp.fcl_weight,
+		tp.sku_weight,
+		tp.WEIGHT_UNIT,
+		tp.TAXES,
+		tp.SKU_VOLUME,
+		tp.FCL_VOLUME,
+		tp.STORE_METHOD,
+		tp.STORE_METHOD_CONSULTING_TELEPHONE,
+		tp.USAGE_MODE,
+		tp.ORIGIN_PLACE,
+		tp.REMARKS,
+		tp.PRODUCT_TYPE_ID
+
+
+		FROM
+		t_product as tp,
+		tp_product_price AS tpp,
+		tp_supplier AS ts
+		WHERE
+		1=1
+		AND tp.id=tpp.product_id
+		AND ts.id=tpp.relation_id AND tpp.price_type=1
+		<if test="pd.USERNAME!=null and pd.USERNAME!='' and pd.USERNAME!='admin'">
+			AND ts.contact_person_mobile=#{pd.USERNAME}
+		</if>
+		<if test="pd.typeId!=0"><!-- 根据分类ID 查询 -->
+			and tp.PRODUCT_TYPE_ID = ${pd.typeId}
+		</if>
+
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+
+		order by tp.id desc
+	</select>
+	<!-- 查询商品信息 -->
+
+	<select id="findProductlistisShelvePage" parameterType="page"
+		resultType="pd">
+		SELECT
+		tp.ID,
+		tp.PRODUCT_NAME,
+		tp.PRODUCT_NUM,
+		tp.BAR_CODE,
+		tp.UNIT,
+		tp.EXPIRE_DAYS,
+		tp.CREATOR,
+		tp.CREATE_TIME,
+		tp.MIN_STOCK_NUM,
+		tp.MAX_STOCK_NUM,
+		tp.HOST_CODE,
+		tp.IS_SHELVE,
+		tp.fcl_weight,
+		tp.sku_weight,
+		tp.WEIGHT_UNIT,
+		tp.TAXES,
+		tp.SKU_VOLUME,
+		tp.FCL_VOLUME,
+		tp.STORE_METHOD,
+		tp.STORE_METHOD_CONSULTING_TELEPHONE,
+		tp.USAGE_MODE,
+		tp.ORIGIN_PLACE,
+		tp.REMARKS,
+		tp.PRODUCT_TYPE_ID
+
+
+		FROM
+		t_product as tp,
+		tp_product_price AS tpp,
+		tp_supplier AS ts
+		WHERE
+		tp.is_shelve = 1
+		AND tp.id=tpp.product_id
+		AND ts.id=tpp.relation_id AND tpp.price_type=1
+		<if test="pd.USERNAME!=null and pd.USERNAME!='' and pd.USERNAME!='admin'">
+			AND ts.contact_person_mobile=#{pd.USERNAME}
+		</if>
+		<if test="pd.typeId!=0"><!-- 根据分类ID 查询 -->
+			and tp.PRODUCT_TYPE_ID = ${pd.typeId}
+		</if>
+
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+
+		order by tp.id desc
+	</select>
+
+
+
+	<!-- 查询商品信息 -->
+
+	<select id="StorageSelectProductlistPage" parameterType="page"
+		resultType="pd">
+
+		SELECT
+		tp.ID,
+		tp.PRODUCT_NAME,
+		tp.PRODUCT_NUM,
+		tp.BAR_CODE,
+		tp.UNIT,
+		tp.EXPIRE_DAYS,
+		tp.CREATOR,
+		tp.CREATE_TIME,
+		tp.MIN_STOCK_NUM,
+		tp.MAX_STOCK_NUM,
+		tp.HOST_CODE,
+		tp.IS_SHELVE,
+		tp.fcl_weight,
+		tp.sku_weight,
+		tp.WEIGHT_UNIT,
+		tp.TAXES,
+		tp.SKU_VOLUME,
+		tp.FCL_VOLUME,
+		tp.STORE_METHOD,
+		tp.STORE_METHOD_CONSULTING_TELEPHONE,
+		tp.USAGE_MODE,
+		tp.ORIGIN_PLACE,
+		tp.REMARKS,
+		tp.PRODUCT_TYPE_ID,
+		tpp.id as tppid
+
+		FROM
+		t_product as tp,tp_product_price as tpp
+
+		WHERE 1=1
+		AND tpp.product_id =tp.id
+		AND tpp.price_type = 1
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		order by tp.id desc
+	</select>
+
+	<select id="getProductInfoById" parameterType="page" resultType="pd">
+
+		SELECT
+		tp.*,
+		tpy.id classify_id,
+		tpy.classify_name,
+		tpw1.warehouse_name,
+		ts.id supplier_id,
+		ts.supplier_name,
+		tpp1.product_price as price1,
+		tpp2.product_price as price2,
+		tpi.product_quantity,
+		tcs.zone,
+		tcs.storey_num,
+		tcs.storey,
+		tpu.id unit_id,
+		tpu.unit_name unit_name
+		FROM
+		t_product AS tp
+		LEFT JOIN tp_product_type AS tpy ON tpy.id =
+		tp.product_type_id
+		LEFT JOIN t_product_inventory AS tpi ON
+		tpi.product_id = tp.id
+		AND tpi.warehouse_id = 1
+		LEFT JOIN tp_warehouse
+		AS tpw1 ON tpi.warehouse_id = tpw1.id
+		LEFT JOIN tp_product_price AS
+		tpp1 ON tpp1.product_id = tp.id
+		AND tpp1.price_type = 1
+
+		LEFT JOIN
+		tp_product_price AS tpp2 ON tpp2.product_id = tp.id
+		AND tpp2.price_type
+		= 2
+		LEFT JOIN tp_supplier AS ts ON ts.id = tpp1.relation_id
+		LEFT JOIN
+		tp_cargo_space AS tcs ON tcs.id = tp.cargo_space_id
+
+		left join
+		tp_meterage_unit as tpu on tpu.id=tp.unit and tpu.status=1
+		WHERE
+		tp.id =
+		#{id}
+		LIMIT 0,
+		1
+
+	</select>
+	<select id="findProductById" parameterType="page" resultType="pd">
+		SELECT
+		p.id,
+		p.product_name,
+		p.product_num,
+		p.bar_code,
+		p.specification,
+		p.expire_days,
+		p.create_time,
+		p.sku_weight,
+		p.sku_volume,
+		p.unit,
+		p.min_order_num,
+		p.product_type_id,
+		tpw.warehouse_name,
+		tpi1.product_quantity AS inventory2,   <!-- 2是次品库存 -->
+		tpi.product_quantity AS inventory,    <!-- 1是正品库存 -->
+		tpi2.product_quantity as invertory3,
+		min(tpp1.product_price) AS
+		PurchasePrice,
+		tpp2.product_price as salePrice,
+		tpc.zone AS cargoSpace
+		FROM
+		t_product AS p
+		LEFT JOIN t_product_inventory AS tpi ON (
+		p.id =
+		tpi.product_id
+		AND tpi.warehouse_id = 1   <!-- 1是正品库存 -->
+		)
+		LEFT JOIN t_product_inventory AS tpi1 ON (
+		p.id = tpi1.product_id
+		AND
+		tpi1.warehouse_id = 2  <!-- 2是次品库存 -->
+		)
+		LEFT JOIN t_product_inventory AS tpi2 ON (
+		p.id = tpi2.product_id
+		AND
+		tpi2.warehouse_id = 3  <!-- 2是次品库存 -->
+		)
+		LEFT JOIN tp_warehouse AS tpw ON tpi.warehouse_id = tpw.id
+		LEFT JOIN
+		tp_cargo_space tpc ON p.cargo_space_id = tpc.id
+		LEFT JOIN
+		tp_product_price AS tpp1 ON (
+		tpp1.product_id = p.id
+		AND tpp1.price_type
+		= 1 )
+		LEFT JOIN tp_product_price AS tpp2 ON (
+		tpp2.product_id = p.id
+		AND
+		tpp2.price_type = 2 )
+
+
+		WHERE p.id = ${productId}
+
+
+	</select>
+
+
+
+	<select id="findProductScancode" parameterType="pd" resultType="pd">
+		select product_num,bar_code,product_name,specification
+
+		from t_product
+
+		where bar_code=#{bar_code}
+	</select>
+	<select id="findQuantityById" parameterType="String" resultType="pd">
+		SELECT
+		tp.id as productId,
+		tpia.product_quantity as quantitya,
+		tpib.product_quantity as quantityb
+		FROM
+		t_product tp
+		LEFT JOIN
+		t_product_inventory tpia ON tpia.product_id = tp.id and
+		tpia.warehouse_id=1
+		LEFT JOIN t_product_inventory tpib on
+		tpib.product_id=tp.id and
+		tpib.warehouse_id=2
+		where tp.id=#{id};
+	</select>
+	<!-- 查询商品的体积与重量 -->
+	<select id="findProductTZById" parameterType="long" resultType="pd">
+
+		SELECT
+		*,
+		tpp.product_price
+		FROM
+		t_product as tp
+		LEFT JOIN tp_product_price
+		AS tpp ON tpp.product_id = tp.id
+		AND tpp.price_type = 2
+		WHERE
+		tp.id =
+		#{id}
+
+
+
+	</select>
+	<select id="findProudctByBarCode" parameterType="pd"
+		resultType="com.hy.entity.product.Product">
+		select
+		id,
+		product_name as productName,
+		bar_code as barCode
+		from t_product
+		where
+		bar_code=#{barcode}
+	</select>
+	<select id="findProductByTypeId" parameterType="pd"
+		resultType="com.hy.entity.product.Product">
+		select
+		id,
+		product_name as productName,
+		bar_code as barCode
+		from t_product
+		where
+		product_type_id=#{product_type_id}
+	</select>
+	<!-- 得到商品的单位 -->
+	<select id="getUnit" resultType="pd">
+		SELECT
+		id as id,
+		unit_name as
+		name,
+		status as status
+		FROM
+		tp_meterage_unit
+		where status=1
+	</select>
+
+	<!-- 根据分类ID查询储存出库单的商品 -->
+	<select id="findProudctBytypeId1" parameterType="page"
+		resultType="pd">
+		SELECT
+		tp.id,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.unit,
+		tp.expire_days,
+		tp.creator,
+		tp.create_time,
+		tp.min_stock_num,
+		tp.max_stock_num,
+		tp.host_code,
+		tp.is_shelve,
+		tp.sku_weight,
+		tp.fcl_weight,
+		tp.weight_unit,
+		tp.taxes,
+		tp.sku_volume,
+		tp.fcl_volume,
+		tp.volume_unit,
+		tp.store_method,
+		tp.store_method_consulting_telephone,
+		tp.usage_mode,
+		tp.origin_place,
+		tp.remarks,
+		tp.product_type_id,
+		tp.specification,
+		tp.box_number,
+		tp.packing_measurement_id
+		FROM
+		t_product
+		AS tp
+		INNER JOIN t_product_inventory AS tpi ON tp.id = tpi.product_id
+		AND
+		tpi.warehouse_id = 1 AND tpi.product_quantity>0
+		where
+		tp.product_type_id=#{pd.typeid}
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+
+	</select>
+
+	<!-- 通过ID查询商品的名称与编号 -->
+	<select id="findNameNumById" parameterType="pd" resultType="pd">
+
+		select product_name from t_product where id=#{id}
+
+	</select>
+	<!-- 根据分类ID查询储存出库单的商品 -->
+	<select id="findProudctBytypeId" parameterType="page"
+		resultType="pd">
+		SELECT
+		tp.id,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.unit,
+		tp.expire_days,
+		tp.creator,
+		tp.create_time,
+		tp.min_stock_num,
+		tp.max_stock_num,
+		tp.host_code,
+		tp.is_shelve,
+		tp.sku_weight,
+		tp.fcl_weight,
+		tp.weight_unit,
+		tp.taxes,
+		tp.sku_volume,
+		tp.fcl_volume,
+		tp.volume_unit,
+		tp.store_method,
+		tp.store_method_consulting_telephone,
+		tp.usage_mode,
+		tp.origin_place,
+		tp.remarks,
+		tp.product_type_id,
+		tp.specification,
+		tp.box_number,
+		tp.packing_measurement_id
+		FROM
+		t_product
+		AS tp
+		INNER JOIN t_product_inventory AS tpi ON tp.id = tpi.product_id
+		AND
+		tpi.warehouse_id = 3 AND tpi.product_quantity>0
+		where
+		tp.product_type_id=#{pd.typeid}
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+
+	</select>
+
+	<!-- 查询周转库信息 商品库存信息 -->
+	<select id="findProductByWarhouseAndQuantitylistPage"
+		parameterType="page" resultType="pd">
+		SELECT
+		tp.id,
+		tp.bar_code,
+		tp.product_num,
+		tp.product_name,
+		tpi.product_quantity
+		FROM
+		t_product AS tp,
+		t_product_inventory AS tpi
+		WHERE
+		tp.id = tpi.product_id
+		AND tpi.product_quantity > 0
+		AND
+		tpi.warehouse_id = #{pd.warehouseId}
+
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+
+
+	</select>
+
+	<select id="dataCenterProductlistPage" resultType="pd"
+		parameterType="page">
+
+		SELECT
+		tp.id,
+		ts.supplier_name,
+		tp.bar_code,
+		tp.product_name,
+		tpi.product_quantity,
+		tpp.product_price,
+		(
+		tpp.product_price *
+		tpi.product_quantity
+		) AS price
+		FROM
+		t_product AS tp
+		LEFT JOIN
+		tp_product_price AS tpp ON tpp.product_id = tp.id
+		AND tpp.price_type =
+		1
+		LEFT JOIN t_product_inventory AS tpi ON tpi.product_id = tp.id
+		AND
+		tpi.warehouse_id = 1
+		LEFT JOIN tp_supplier AS ts ON ts.id =
+		tpp.relation_id
+		LEFT JOIN sys_user su ON su.USERNAME=ts.supplier_num
+		where 1=1
+
+		<if test="pd.supplier_name != null and pd.supplier_name != '' ">
+			and ts.supplier_name LIKE
+			CONCAT('%','${pd.supplier_name}','%' )
+
+		</if>
+		<if test="pd.USERNAME!=null and pd.USERNAME!='' and pd.USERNAME!='admin'">
+			AND ts.contact_person_mobile=#{pd.USERNAME}
+		</if>
+	</select>
+
+	<select id="getProductExcelInfo" parameterType="page" resultType="pd">
+		SELECT
+		tp.id,
+		tp.bar_code,
+		tp.host_code,
+		tp.product_name,
+		tp.product_num,
+		(
+		SELECT
+		SUM(tpii.product_quantity)
+		FROM
+		t_product_inventory AS tpii
+		WHERE
+		tpii.product_id = tp.id
+		<if test="pd.ck_id!=0">
+			and tpii.ck_id=${pd.ck_id}
+		</if>
+		and tpii.warehouse_id=${pd.warehouse_id}
+		) AS sumproduct_quantity,
+		tp.min_stock_num,
+		tp.max_stock_num,
+		tp.specification,
+		tpi.product_quantity,
+		tpp.product_price,
+		tpi.product_quantity*tpp.product_price as final_price,
+		tpi.state,
+		tpy.classify_name,
+		tpw.warehouse_name,
+		tpmu.unit_name,
+		tpcs.zone,
+		tpcs.storey,
+		tpcs.storey_num
+		FROM
+		t_product tp
+		LEFT JOIN tp_meterage_unit
+		tpmu ON tpmu.id = tp.unit
+		LEFT JOIN tp_product_type tpy ON tpy.id =
+		tp.product_type_id
+		LEFT JOIN tp_product_price tpp ON
+		tpp.product_id=tp.id
+		LEFT JOIN t_product_inventory tpi ON
+		tpi.product_id = tp.id
+		LEFT JOIN tp_warehouse tpw ON tpw.id =
+		tpi.warehouse_id
+		LEFT JOIN tp_cargo_space tpcs ON tpcs.id =
+		tp.cargo_space_id
+		WHERE
+		1 = 1
+		<if test="pd.ck_id!=0">
+			and tpi.ck_id=${pd.ck_id}
+		</if>
+		<if test="pd.warehouse_id!=null">
+			and tpi.warehouse_id=${pd.warehouse_id}
+		</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				AND tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				AND tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				AND tpy.classify_name LIKE CONCAT('%','${pd.keyword}','%'
+				)
+			</if>
+			<if test="pd.searchcriteria==4">
+				AND tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==5">
+				AND tp.creator LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==6">
+				AND tpmu.unit_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		AND tpp.price_type=1
+		AND tpi.product_quantity != 0
+		GROUP BY
+			tp.product_num
+		ORDER BY
+		tp.id DESC
+	</select>
+
+	<!-- 查询新品 -->
+	<select id="listProductlistPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT
+		tp.id,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.unit,
+		tp.expire_days,
+		tp.creator,
+		tp.create_time,
+		tp.min_stock_num,
+		tp.max_stock_num,
+		tp.host_code,
+		tp.is_shelve,
+		tp.specification,
+		tpy.classify_name,
+		tcs.cargo_space_num,
+		tcs.zone,
+		tcs.storey,
+		tcs.storey_num,
+		tppc.product_price AS c,
+		tpps.product_price
+		AS s,
+		tmu.unit_name,
+		ts.supplier_name
+		FROM
+		t_product tp
+		left join tp_product_type tpy on tp.product_type_id = tpy.id
+	<!-- 	left join t_product_inventory tpi on tpi.product_id = tp.id and tpi.ck_id=${pd.ck_id} and tpi.warehouse_id=1 -->
+		left join tp_cargo_space tcs on tcs.id = tp.cargo_space_id
+		left join tp_product_price tppc on tppc.product_id = tp.id and tppc.price_type = 1
+		left join tp_product_price tpps on tpps.price_type = 2 AND tpps.product_id = tp.id
+		left join tp_meterage_unit tmu on tmu.id=tp.unit
+		LEFT JOIN tp_supplier ts ON ts.id=tppc.relation_id
+		WHERE
+		1=1
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			and
+			<if test="pd.searchcriteria==1">
+				tp.product_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				tp.product_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				tpy.classify_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==4">
+				tp.bar_code LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==5">
+				tp.creator LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==6">
+				tp.unit LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==7">
+				ts.supplier_name LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.USERNAME!=null and pd.USERNAME!='' and pd.USERNAME!='admin'">
+			and ts.contact_person_mobile=#{pd.USERNAME}
+		</if>
+			AND tp.is_shelve=2
+			AND
+			(DATE_SUB(CURDATE(), INTERVAL 30 DAY) &lt;= DATE(tp.newproduct_time)
+			OR tp.newproduct_time is null)
+			order by tp.id desc
+	</select>
+	
+	<!-- 保存新商品 -->
+	<insert id="savenew" parameterType="pd" keyProperty="id">
+		insert into
+		t_product(
+		PRODUCT_NAME,
+		BAR_CODE,
+		UNIT,
+		EXPIRE_DAYS,
+		CREATOR,
+		CREATE_TIME,
+		MIN_STOCK_NUM,
+		MAX_STOCK_NUM,
+		IS_SHELVE,
+		FCL_WEIGHT,
+		SKU_WEIGHT,
+		WEIGHT_UNIT,
+		TAXES,
+		SKU_VOLUME,
+		FCL_VOLUME,
+		STORE_METHOD,
+		STORE_METHOD_CONSULTING_TELEPHONE,
+		USAGE_MODE,
+		ORIGIN_PLACE,
+		REMARKS,
+		PRODUCT_TYPE_ID,
+		packing_measurement_id,
+		box_number,
+		VOLUME_UNIT,
+		SPECIFICATION,
+		proimage
+		) values (
+		#{PRODUCT_NAME},
+		#{BAR_CODE},
+		#{UNIT},
+		#{EXPIRE_DAYS},
+		#{CREATOR},
+		#{CREATE_TIME},
+		#{MIN_STOCK_NUM},
+		#{MAX_STOCK_NUM},
+		#{IS_SHELVE},
+		#{FCL_WEIGHT},
+		#{SKU_WEIGHT},
+		#{WEIGHT_UNIT},
+		#{TAXES},
+		#{SKU_VOLUME},
+		#{FCL_VOLUME},
+		#{STORE_METHOD},
+		#{STORE_METHOD_CONSULTING_TELEPHONE},
+		#{USAGE_MODE},
+		#{ORIGIN_PLACE},
+		#{REMARKS},
+		#{PRODUCT_TYPE_ID},
+		#{packing_measurement_id},
+		#{box_number},
+		#{VOLUME_UNIT},
+		#{SPECIFICATION},
+		#{proimage}
+		)
+	</insert>
+	
+	<!-- 修改 -->
+	<update id="newedit" parameterType="pd">
+		update t_product
+		set
+		PRODUCT_NAME= #{PRODUCT_NAME},
+		BAR_CODE = #{BAR_CODE},
+		UNIT = #{UNIT},
+		EXPIRE_DAYS =#{EXPIRE_DAYS},
+		CREATOR = #{CREATOR},
+		MIN_STOCK_NUM = #{MIN_STOCK_NUM},
+		MAX_STOCK_NUM = #{MAX_STOCK_NUM},
+		HOST_CODE = #{HOST_CODE},
+		WEIGHT_UNIT= #{WEIGHT_UNIT},
+		TAXES = #{TAXES},
+		box_number=#{box_number},
+		sku_volume=#{sku_volume},
+		sku_weight=#{sku_weight},
+		FCL_VOLUME =#{FCL_VOLUME},
+		FCL_WEIGHT= #{FCL_WEIGHT},
+		VOLUME_UNIT = #{VOLUME_UNIT},
+		STORE_METHOD = #{STORE_METHOD},
+		STORE_METHOD_CONSULTING_TELEPHONE =#{STORE_METHOD_CONSULTING_TELEPHONE},
+		USAGE_MODE = #{USAGE_MODE},
+		ORIGIN_PLACE = #{ORIGIN_PLACE},
+		IS_SHELVE=#{IS_SHELVE},
+		REMARKS =#{REMARKS},
+		PRODUCT_TYPE_ID = #{PRODUCT_TYPE_ID},
+		SPECIFICATION=#{SPECIFICATION},
+		product_num=#{product_num},
+		cargo_space_id=${cargo_space_id},
+		newproduct_time=#{newproduct_time},
+		bursting=#{bursting},
+		type=${type}
+		<if test="proimage!=null and proimage!=''">
+		,proimage=#{proimage}
+		</if>
+		where
+		id = #{id}
+	</update>
+	<!-- 根据ID更新商品日期 -->
+	<update id="updateProductTime" parameterType="pd">
+		update t_product set newproduct_time=#{newproduct_time} where id=#{id}
+	</update>
+	
+	<!-- 查询活动商品信息 -->
+	<select id="getActivityproductlist" parameterType="pd"
+		resultType="pd">
+		SELECT tpa.* from t_product_activity tpa WHERE tpa.product_id=#{product_id}
+	</select>
+	
+	<update id="updateProductstate" parameterType="pd">
+		update t_product_activity set state=2,type=2 where product_id=#{product_id}
+	</update>
+	
+	<!-- 查询商品库存详情 -->
+	<select id="fundGroupProduct" parameterType="pd" resultType="pd">
+		SELECT
+		tp.product_name,
+		tmu.unit_name tun,
+		tpi.id tpiid,
+		tpi.product_date,
+		tpi.product_quantity tpq,
+		tp.expire_days,
+		TO_DAYS(NOW()) - TO_DAYS(tpi.product_date) kulunut,
+		tp.expire_days -
+				(TO_DAYS(NOW())-TO_DAYS(tpi.product_date)) kysj
+		FROM
+		t_product_inventory tpi
+		LEFT JOIN t_product tp on
+		tp.id= tpi.product_id
+		LEFT JOIN tp_meterage_unit tmu on tmu.id=tp.unit
+		where
+		tpi.product_id in ( select t.id from t_product t  where t.product_num = #{productNum})
+		and tpi.warehouse_id=1 
+		<if test="ck_id!=0">
+			and	tpi.ck_id=${ck_id}
+		</if>
+	</select>
+	
+	<!-- 根据供应商查询商品 -->
+	<select id="saleReturnProductlist" parameterType="pd" resultType="pd">
+		SELECT
+		tpt.id product_id,
+		tpt.product_name,
+		tpt.bar_code,
+		tpt.sku_weight,
+		tpt.sku_volume,
+		tpp.product_price purchase_price
+		FROM
+			t_product tpt
+		LEFT JOIN tp_product_price tpp ON tpp.product_id = tpt.id
+		LEFT JOIN tp_supplier ts ON ts.id = tpp.relation_id
+		WHERE
+			tpp.price_type = 1
+		AND tpt.is_shelve = 1
+		AND tpp.supplier_priority=1
+		<if test="USERNAME!=null and USERNAME!='' and USERNAME!='admin'">
+			and ts.contact_person_mobile=#{USERNAME}
+		</if>
+		<if test="contact_person_mobile!=null and contact_person_mobile!=''">
+			and ts.contact_person_mobile=#{contact_person_mobile}
+		</if>
+          <if test="product_name!=null and product_name != ''">
+			  and	tpt.product_name LIKE CONCAT('%',#{product_name},'%' )
+		  </if>
+		  <if test="product_id!=null and product_id != ''">
+			  and	tpt.id=${product_id}
+		  </if>
+			group by tpt.id
+	</select>
+	
+	<update id="shenheactivity" parameterType="pd">
+		update t_product_activity set state=#{state},effective_time=now()
+		where id=#{id}
+	</update>
+	
+	<!-- copy  getstaleDated   求出共享库存  统计  2/1 3/1 4/1 其他 -->
+		<select id="getInventoryCount" resultType="pd" parameterType="String">
+					SELECT
+					a.a,
+					b.b,
+					c.c,
+					d.d
+				FROM
+					(
+									SELECT
+							SUM(tpi.product_quantity) a
+						FROM
+							t_product_inventory tpi,
+							t_product tp
+						WHERE
+							tp.id = tpi.product_id
+						AND tp.product_num = #{productNum}
+						AND tpi.warehouse_id = 1
+						<if test="ck_id!=0">
+							and	tpi.ck_id=${ck_id}
+						</if>
+						AND (
+							TO_DAYS(NOW()) - TO_DAYS(tpi.product_date))  &lt;= tp.expire_days * 0.5) a,
+					(
+						SELECT
+							SUM(tpi.product_quantity) b
+						FROM
+							t_product_inventory tpi,
+							t_product tp
+						WHERE
+							tp.id = tpi.product_id
+						AND tp.product_num = #{productNum}
+						AND  tpi.warehouse_id = 1
+						<if test="ck_id!=0">
+							and	tpi.ck_id=${ck_id}
+						</if>
+						AND (
+							TO_DAYS(NOW()) - TO_DAYS(tpi.product_date)
+						)  &lt;= tp.expire_days * 0.3333
+					) b,
+					(
+						SELECT
+							SUM(tpi.product_quantity) c
+						FROM
+							t_product_inventory tpi,
+							t_product tp
+						WHERE
+							tp.id = tpi.product_id
+					
+						AND tp.product_num = #{productNum}
+						AND  tpi.warehouse_id = 1
+						<if test="ck_id!=0">
+								and	tpi.ck_id=${ck_id}
+						</if>
+						AND (
+							TO_DAYS(NOW()) - TO_DAYS(tpi.product_date)
+						) &lt;= tp.expire_days * 0.25
+					) c,
+				(
+						SELECT
+							SUM(tpi.product_quantity) d
+						FROM
+							t_product_inventory tpi,
+							t_product tp
+						WHERE
+							tp.id = tpi.product_id
+						AND tp.product_num  = #{productNum}
+						AND  tpi.warehouse_id = 1
+						
+						<if test="ck_id!=0">
+							and	tpi.ck_id=${ck_id}
+						</if>
+					) d
+	
+	</select>
+	
+</mapper>

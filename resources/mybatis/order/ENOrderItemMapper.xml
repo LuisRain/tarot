@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ENOrderItemMapper">
+	<!-- 列表(全部) -->
+	<select id="eNOrderItemlistPage" parameterType="page"
+		resultType="pd" useCache="false">
+		SELECT
+		tenoi.id,
+		tenoi.group_num,
+		tenoi.order_num,
+		tenoi.purchase_price,
+		tenoi.final_quantity,
+		tenoi.svolume ,
+		tenoi.weight ,
+		tenoi.is_split_ivt ,
+		tenoi.is_ivt_BK ,
+		tenoi.en_time ,
+		tenoi.creator ,
+		tenoi.comment,
+		tenoi.create_time,
+		tp.id as product_id,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.min_stock_num,
+		tp.max_stock_num,
+		FROM t_en_order_item
+		tenoi
+		LEFT JOIN t_product tp ON tp.id =
+		teno.product_id AND
+		tp.is_shelve=1
+		where tenoi.state=1
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and tenoi.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				and tenoi.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.StartDate!=null and pd.StartDate!=''">
+				and tenoi.create_time &gt;= #{pd.StartDate}
+			</if>
+			<if test="pd.EndDate!=null and pd.EndDate!=''">
+				and tenoi.create_time &lt;= #{pd.EndDate}
+			</if>
+		</if>
+		ORDER BY tenoi.id DESC
+	</select>
+
+	<!-- 新增 -->
+	<insert id="save" parameterType="pd">
+		insert into t_en_order_item(
+		group_num,
+		order_num,
+		purchase_price,
+		quantity,
+		final_quantity,
+		svolume ,
+		weight ,
+		is_split_ivt ,
+		is_ivt_BK ,
+		en_time ,
+		creator ,
+		comment,
+		create_time,
+		product_id,
+		reason
+		) values (
+		#{group_num},
+		#{order_num},
+		#{purchase_price},
+		#{quantity},
+		#{final_quantity},
+		#{svolume},
+		#{weight},
+		#{is_split_ivt},
+		#{is_ivt_BK},
+		now(),
+		#{creator},
+		#{comment},
+		NOW(),
+		#{product_id},
+		#{reason}
+		)
+	</insert>
+	<!-- 新增 -->
+	<insert id="saveENOrderItem" useGeneratedKeys="true"
+		parameterType="java.util.List">
+		<selectKey resultType="long" keyProperty="id" order="AFTER">
+			SELECT
+			LAST_INSERT_ID()
+		</selectKey>
+		insert into t_en_order_item(
+		group_num,
+		order_num,
+		purchase_price,
+		quantity,
+		final_quantity,
+		svolume ,
+		weight ,
+		is_split_ivt ,
+		is_ivt_BK ,
+		en_time ,
+		creator ,
+		comment,
+		create_time,
+		product_id
+		) values
+		<foreach collection="list" item="item" index="index"
+			separator=",">
+			(
+			#{item.groupNum},
+			#{item.orderNum},
+			#{item.purchasePrice},
+			#{item.quantity},
+			#{item.finalQuantity},
+			#{item.svolume},
+			#{item.weight},
+			#{item.isSplitIvt},
+			#{item.isIvtBK},
+			#{item.eNTime},
+			#{item.creator},
+			#{item.comment},
+			NOW(),
+			#{item.product.id}
+			)
+		</foreach>
+	</insert>
+	<!-- 删除 -->
+	<delete id="delete" parameterType="pd">
+		UPDATE t_en_order_item
+		SET
+		state=2
+		WHERE
+		id = #{id}
+	</delete>
+	<!-- 删除 -->
+	<delete id="deleteList" parameterType="java.util.List">
+		delete from t_en_order_item
+		where group_num in
+		<foreach collection="list" item="model" open="(" separator=","
+			close=")">
+			#{model.groupNum}
+		</foreach>
+	</delete>
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		UPDATE t_en_order_item
+		SET
+		<if test="purchase_price!=null and purchase_price!=''">
+			purchase_price=#{purchase_price}
+		</if>
+		<if test="suggest_quantity!=null and suggest_quantity!=''">
+			suggest_quantity=#{suggest_quantity}
+		</if>
+		<if test="final_quantity!=null and final_quantity!=''">
+			final_quantity=#{final_quantity}
+		</if>
+		<if test="creator!=null and creator!=''">
+			creator= #{creator}
+		</if>
+		<if test="comment!=null and comment!=''">
+			comment=#{comment}
+		</if>
+		<if test="en_time !=null and en_time= ''">
+
+			en_time=now(),
+
+		</if>
+		<if test="is_split_ivt !=null and is_split_ivt !=''">
+
+			is_split_ivt=#{is_split_ivt}
+
+		</if>
+		<if test="product_id!=null and product_id!='' and product_id>0">
+			product_id=#{product_id}
+		</if>
+		WHERE
+		id = #{id}
+	</update>
+
+
+
+	<update id="editState" parameterType="pd">
+		UPDATE t_en_order_item
+		SET
+		en_time=now(),
+		is_split_ivt=#{is_split_ivt}
+		where id=#{id}
+
+
+	</update>
+	<update id="editQuantity" parameterType="pd">
+
+		UPDATE t_en_order_item
+		SET
+		final_quantity=#{final_quantity},
+		product_time=#{product_time},
+		product_group_num=#{productGroup},
+		gift_quantity=#{gift_quantity}
+		where id=#{id}
+
+	</update>
+
+
+	<select id="findOrderItemByOrderNum" parameterType="pd"
+		resultType="pd">
+
+		select * from t_en_order_item AS toi where
+		toi.order_num=#{order_num}
+
+	</select>
+
+	<!-- 通过ID获取数据 -->
+	<select id="findByIdOrOrderNumOrGroupNum" parameterType="pd"
+		resultType="pd">
+		SELECT
+		tenoi.*,
+		(tenoi.quantity*tenoi.purchase_price) as totalPrice ,
+		tp.id as product_id,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.min_stock_num,
+		tp.max_stock_num
+		FROM t_en_order_item tenoi
+		LEFT JOIN
+		t_product tp ON tp.id =
+		tenoi.product_id AND tp.is_shelve=1
+		where
+		tenoi.state=1
+		<if test="id!=null and id!='' and id>0">
+			AND tenoi.id=#{id}
+		</if>
+		<if test="order_num!=null and order_num!='' ">
+			AND tenoi.order_num=#{order_num}
+		</if>
+		<if test="group_num!=null and group_num!='' ">
+			AND tenoi.group_num=#{group_num}
+		</if>
+		<if test="product_id != null and product_id != ''">
+			AND product_id = #{product_id}
+		</if>
+	</select>
+	<!-- 订单行商品数量信息 -->
+	<select id="getOrderItemlistProductById" parameterType="page"
+		resultType="pd" useCache="false">
+		SELECT
+		toi.id,
+		tp.bar_code,
+		tp.product_num,
+		tp.specification,
+		ts.supplier_name,
+		tp.product_name,
+		tp.specification,
+		tp.expire_days,
+		toi.quantity,
+		toi.final_quantity,
+		toi.purchase_price,
+		toi.is_ivt_BK,
+		toi.comment,
+		tpp1.product_price,
+		toi.product_time,
+		(toi.final_quantity*tpp1.product_price) as price ,
+		(toi.quantity*tpp1.product_price) as price1,
+		toi.product_group_num,
+		toi.gift_quantity
+		FROM
+		t_en_order_item AS toi
+		LEFT JOIN t_product AS tp ON tp.id = toi.product_id
+		LEFT JOIN tp_product_price AS tpp1 ON tpp1.product_id = tp.id AND tpp1.price_type = 1
+		LEFT JOIN tp_supplier AS ts ON ts.id = tpp1.relation_id
+		
+		where toi.order_num = #{pd.orderNum}
+	</select>
+	<!-- 查看入库单商品 -->
+	<select id="enDataCenterlistPage" resultType="pd" parameterType="page">
+
+
+		SELECT
+		teo.id,
+		teo.group_num,
+		teo.creator,
+		teo.final_quantity,
+		teo.quantity,
+		teo.`comment`,
+		teo.is_ivt_BK,
+		teo.reason,
+		teo.order_num,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.specification,
+		teo.purchase_price as
+		purchase_price,
+		tpp2.product_price AS sale_price,
+		tpt.classify_name,
+		tmu.unit_name,
+		(
+		teo.final_quantity * teo.purchase_price
+		) AS
+		sumSalePrice,
+		ts.supplier_name,
+		tewo.create_time,
+		tewo.order_date,
+		(teo.quantity-teo.final_quantity) AS shuliang
+		FROM
+		t_en_order_item AS teo
+		LEFT JOIN t_product AS tp ON tp.id =
+		teo.product_id
+		LEFT JOIN tp_product_price AS tpp2 ON tpp2.product_id =
+		tp.id
+		AND
+		tpp2.price_type = 2
+		left join tp_product_type as tpt on tpt.id=
+		tp.product_type_id
+		left join tp_meterage_unit as tmu on tmu.id=tp.unit
+		LEFT JOIN t_en_warehouse_order AS tewo ON tewo.order_num
+		=teo.order_num
+		LEFT JOIN tp_supplier as ts on ts.id=tewo.supplier_id
+		WHERE 1=1
+		<if test="pd.ivt_state!=null and pd.ivt_state!='' and pd.ivt_state>0">
+			AND tewo.ivt_state=#{pd.ivt_state}
+		</if>
+		<if test="pd.ivt_state ==2 ">
+			<if test="null != pd.StartDate and pd.StartDate!=''">
+				and tewo.order_date &gt;= #{pd.StartDate}
+			</if>
+			<if test="null !=pd.EndDate  and pd.EndDate!=''">
+				and tewo.order_date &lt;= #{pd.EndDate}
+			</if>
+		</if>
+		<if test="pd.ivt_state ==1  or pd.ivt_state == 0">
+			<if test="pd.StartDate!=null and pd.StartDate!=''">
+				and tewo.create_time &gt;= #{pd.StartDate}
+			</if>
+			<if test="pd.EndDate !=null and pd.EndDate!=''">
+				and tewo.create_time &lt;= #{pd.EndDate}
+			</if>
+
+		</if>
+		<if test="pd.keyword!=null and pd.keyword!=''">
+			<if test="pd.searchcriteria==1">
+				AND tp.bar_code like CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==2">
+				AND ts.supplier_name like CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				AND teo.group_num like CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+	</select>
+	
+	<!-- 查看入库单商品 -->
+	<select id="enDataCenterexcel" resultType="pd" parameterType="pd">
+		SELECT
+		teo.id,
+		teo.group_num,
+		teo.creator,
+		teo.final_quantity,
+		teo.quantity,
+		teo.`comment`,
+		teo.is_ivt_BK,
+		teo.reason,
+		teo.order_num,
+		tp.product_name,
+		tp.product_num,
+		tp.bar_code,
+		tp.specification,
+		teo.purchase_price as
+		purchase_price,
+		tpp2.product_price AS sale_price,
+		tpt.classify_name,
+		tmu.unit_name,
+		(
+		teo.final_quantity * teo.purchase_price
+		) AS
+		sumSalePrice,
+		ts.supplier_name,
+		tewo.create_time,
+		tewo.order_date,
+		(teo.quantity-teo.final_quantity) AS shuliang
+		FROM
+		t_en_order_item AS teo
+		LEFT JOIN t_product AS tp ON tp.id =
+		teo.product_id
+		LEFT JOIN tp_product_price AS tpp2 ON tpp2.product_id =
+		tp.id
+		AND
+		tpp2.price_type = 2
+		left join tp_product_type as tpt on tpt.id=
+		tp.product_type_id
+		left join tp_meterage_unit as tmu on tmu.id=tp.unit
+		LEFT JOIN t_en_warehouse_order AS tewo ON tewo.order_num
+		=teo.order_num
+		LEFT JOIN tp_supplier as ts on ts.id=tewo.supplier_id
+		WHERE 1=1
+		<if test="ivt_state!=null and ivt_state!='' and ivt_state>0">
+			AND tewo.ivt_state=#{ivt_state}
+		</if>
+		<if test="ivt_state ==2 ">
+			<if test="null != StartDate and StartDate!=''">
+				and tewo.order_date &gt;= #{StartDate}
+			</if>
+			<if test="null !=EndDate  and EndDate!=''">
+				and tewo.order_date &lt;= #{EndDate}
+			</if>
+		</if>
+		<if test="ivt_state ==1  or ivt_state == 0">
+			<if test="StartDate!=null and StartDate!=''">
+				and tewo.create_time &gt;= #{StartDate}
+			</if>
+			<if test="EndDate !=null and EndDate!=''">
+				and tewo.create_time &lt;= #{EndDate}
+			</if>
+
+		</if>
+		<if test="keyword!=null and keyword!=''">
+			<if test="searchcriteria==1">
+				AND tp.bar_code like CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==2">
+				AND ts.supplier_name like CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==3">
+				AND teo.group_num like CONCAT('%','${keyword}','%' )
+			</if>
+		</if>
+	</select>
+	
+	<select id="dataCenterSupplierlistPage" parameterType="page"
+		resultType="pd">
+		SELECT
+		ts.supplier_name,
+		tp.product_name,
+		tp.bar_code,
+		tei.purchase_price,
+		tei.final_quantity,
+		(
+		tei.purchase_price *
+		tei.quantity
+		) as price
+		FROM
+		t_en_order_item AS tei
+		LEFT JOIN t_product AS
+		tp ON tp.id =
+		tei.product_id
+		LEFT JOIN tp_product_price AS tpp ON
+		tpp.product_id =
+		tei.product_id
+		AND tpp.price_type = 1
+		LEFT JOIN
+		tp_supplier AS ts ON
+		ts.id = tpp.relation_id
+
+		where 1=1
+
+		<if test="pd.supplier_name != null and pd.supplier_name !=''">
+			AND ts.supplier_name like
+			CONCAT('%','${pd.supplier_name}','%' )
+		</if>
+		<if test="pd.StartDate!=null and pd.StartDate!=''">
+			and tei.create_time &gt;= #{pd.StartDate}
+		</if>
+		<if test="pd.EndDate !=null and pd.EndDate!=''">
+			and tei.create_time &lt;= #{pd.EndDate}
+		</if>
+
+		order by
+		<if test="pd.sort == 1">
+			price
+		</if>
+		<if test="pd.sort == 2">
+			tei.quantity
+		</if>
+		desc
+	</select>
+
+
+
+</mapper>

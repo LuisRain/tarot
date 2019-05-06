@@ -1,0 +1,181 @@
+body {
+    background-color: #f4f4f4;
+}
+/*商品列表*/
+.area{
+
+    margin-bottom: .20rem;
+    width: 100%;
+    z-index: 9;
+    position: absolute;
+    top: 0.88rem;
+}
+.listBox{
+    width: 100%;
+}
+.listBox>li{
+    width: 100%;
+    background: #fff;
+    padding:.2rem;
+    margin: .1rem 0;
+}
+.listBox>li:first-child{
+    margin-top: 0;
+}
+.listLeft{
+    width: 70%;
+    display: inline-block;
+    vertical-align: top;
+}
+.listLeft>img{
+    width: 1.2rem;
+    height: 1.2rem;
+    display: inline-block;
+    vertical-align: top;
+}
+.listText{
+    display: inline-block;
+    width: 60%;
+    margin-left: .1rem;
+}
+.listText>h3{
+    color: #333;
+    font-size: .32rem;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.listText>p{
+    color: #333;
+    font-size: .28rem;
+    margin-top: .4rem;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.listRight{
+    display: inline-block;
+    width: 27%;
+    text-align: right;
+    color: #333;
+}
+.listRight:hover{
+    color: #E15656;
+}
+
+.cartNum {
+    position: absolute;
+    padding: 0 .1rem;
+    height: .3rem;
+    border-radius: 0.3rem;
+    background-color: #f5445d;
+    color: #fff;
+    font-size: 0.22rem;
+    font-style: normal;
+    text-align: center;
+    line-height: .3rem;
+    top: 0;
+    left: 0.9rem;
+    display: none;
+}
+.orderTop{
+    margin-bottom: .1rem;
+    background-color: #fff;
+}
+.site{
+    display: inline-block;
+    width: 60%;
+
+    padding: .2rem 0 .2rem .2rem;
+}
+.userName{
+    width: 34%;
+    text-align: right;
+    display: inline-block;
+    padding: .2rem 0;
+}
+.address{
+    padding: .2rem;
+}
+.title{
+    font-size: .28rem;
+    padding: .2rem;
+    background: #fff;
+}
+
+
+
+
+body .setting {
+    width: 100%;
+}
+
+body .setting ul {
+    width: 100%;
+}
+
+body .setting ul li {
+    border-bottom: 1px solid #f4f4f4;
+    padding: 0rem .24rem;
+    height: 1.1rem;
+    color: #383938;
+    font-size: .28rem;
+    line-height: 1.1rem;
+    background-color: #fff;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+body .setting ul li span {
+    font-size: .28rem;
+    color: #505050;
+    float: right;
+}
+
+body .setting ul li .comment {
+    /*background: url('../../public/images/rightArrow.png') no-repeat 7rem center;*/
+    background-size: .18rem;
+    background-color: #fff;
+}
+
+body .setting ul li .shop {
+   /* background: url('../../public/images/open.png') no-repeat 6.5rem center;*/
+    background-size: .8rem .5rem;
+    background-color: #fff;
+}
+
+body .setting > a {
+    display: inline-block;
+    width: 6.4rem;
+    height: .76rem;
+    background-color: #f5445d;
+    color: #fff;
+    font-size: .3rem;
+    text-align: center;
+    line-height: .76rem;
+    border-radius: .5rem;
+    margin: 0.2rem 0rem 0.2rem .48rem;
+}
+
+/*body .setting > span {*/
+    /*display: inline-block;*/
+    /*width: 3.2rem;*/
+    /*height: .76rem;*/
+    /*background-color: #f5445d;*/
+    /*color: #fff;*/
+    /*font-size: .3rem;*/
+    /*text-align: center;*/
+    /*line-height: .76rem;*/
+    /*border-radius: .5rem;*/
+    /*margin: 0.2rem .48rem 0.2rem 0rem;*/
+/*}*/
+
+.setting ul a {
+    display: block;
+    width: 100%;
+    height: 100%;
+    line-height: 1.1rem;
+    color: #383938;
+}

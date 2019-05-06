@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="SellingOrderMapper">
+	
+	<select id="dqexcel" parameterType="pd" resultType="pd">
+		select tsoi.id,tpt.product_num,tpt.bar_code,tpt.product_name,tpp.product_price,tsoi.quantity,tsoi.final_quantity,tsoi.gift_quantity,tmt.merchant_name,tmt.merchant_num,
+		tsoi.comment,tsoi.order_num,tsoi.group_num,tso.checked_state,tso.order_date,tso.type
+		from t_selling_order_item tsoi
+		
+		LEFT JOIN t_selling_order tso on tso.order_num=tsoi.order_num
+		
+		LEFT JOIN t_merchant tmt on tmt.id=tso.merchant_id
+		
+		LEFT JOIN tm_area tma on tma.id=tmt.city
+		
+		LEFT JOIN t_product tpt on tpt.id=tsoi.product_id
+		
+		LEFT JOIN tp_product_price tpp on tpp.product_id=tpt.id and tpp.price_type=2
+		where 1=1  and tso.order_type = 1
+		<if test="username!=null and username !=''">
+			AND tma.area_num=#{username}
+		</if>
+		<if test="state != null and state != '' and state!=0">
+			and tso.checked_state = #{state}
+		</if>
+     	<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+     			<if test="searchcriteria==1">
+			   	 and (tmt.merchant_name LIKE  CONCAT('%','${keyword}','%' ) or
+			   	 tmt.merchant_num LIKE  CONCAT('%','${keyword}','%' ) )  
+			   </if> 
+			    <if test="searchcriteria==3">
+			    and tso.order_num LIKE  CONCAT('%','${keyword}','%' )  
+			   </if> 
+			   <if test="searchcriteria==4">
+			    and tmt.contact_person LIKE  CONCAT('%','${keyword}','%' )  
+			   </if> 
+	    </if>
+	    <if test="searchcriteria==2">
+			         <if test="lastLoginStart!=null and lastLoginStart!=''"><!-- 登录时间检索 -->
+			          and      tso.order_date &gt;= #{lastLoginStart} 
+		            </if>
+	              <if test="lastLoginEnd!=null and lastLoginEnd!=''"><!-- 登录时间检索 -->
+			        and tso.order_date &lt;= #{lastLoginEnd} 
+		           </if>
+		 </if>
+		   <if test="type != 0 and type!= '' and  type!=null"><!-- 关键词检索 -->
+			    and tso.type=${type}
+	    	</if>
+		ORDER BY tso.id DESC
+	
+	</select>
+	
+	
+	 <!-- 列表(全部) -->
+	<select id="sellingorderdqlistPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT                         
+		tpo.id,
+		tpo.order_num,
+		tpo.comment,
+		tpo.order_date,
+		tpo.deliver_date,
+		tpo.manager_name,
+		tm.merchant_name,
+		tm.contact_person,
+		tpo.manager_tel,
+		tpo.checked_state,
+		tpo.type,
+		ar.area_name
+		FROM t_selling_order tpo
+		LEFT JOIN t_merchant as tm ON tm.ID =tpo.merchant_id
+		LEFT JOIN tm_area ar on ar.id = tm.city
+		where 1=1  and tpo.order_type = 1
+		<if test="pd.username!=null and pd.username !=''">
+			AND ar.area_num=${pd.username}
+		</if>
+		<if test="pd.state != null and pd.state != '' and pd.state!=0">
+			and tpo.checked_state = #{pd.state}
+		</if>
+		<if test="pd.state == null or pd.state == '' or pd.state==0">
+			and tpo.checked_state != 11
+		</if>
+     	<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+     			<if test="pd.searchcriteria==1">
+			   	 and (tm.merchant_name LIKE  CONCAT('%','${pd.keyword}','%' ) or
+			   	 tm.merchant_num LIKE  CONCAT('%','${pd.keyword}','%' ) )  
+			   </if> 
+			    <if test="pd.searchcriteria==3">
+			    and tpo.order_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+			   <if test="pd.searchcriteria==4">
+			    and tm.contact_person LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+	    </if>
+	    <if test="pd.searchcriteria==2">
+			         <if test="pd.lastLoginStart!=null and pd.lastLoginStart!=''"><!-- 登录时间检索 -->
+			          and      tpo.order_date &gt;= #{pd.lastLoginStart} 
+		            </if>
+	              <if test="pd.lastLoginEnd!=null and pd.lastLoginEnd!=''"><!-- 登录时间检索 -->
+			        and tpo.order_date &lt;= #{pd.lastLoginEnd} 
+		           </if>
+		 </if>
+		   <if test="pd.type != 0 and pd.type!= '' and  pd.type!=null"><!-- 关键词检索 -->
+			    and tpo.type=${pd.type}
+	    	</if>
+		ORDER BY tpo.id DESC
+	</select>
+	
+   <!-- 列表(全部) -->
+	<select id="listPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT                         
+		tpo.id,
+		tpo.order_num,
+		tpo.comment,
+		tpo.order_date,
+		tpo.deliver_date,
+		tpo.manager_name,
+		tm.merchant_name,
+		tm.contact_person,
+		tpo.manager_tel,
+		tpo.checked_state,
+		tpo.type,
+		ar.area_name
+		FROM t_selling_order tpo
+		LEFT JOIN t_merchant as tm ON tm.ID =tpo.merchant_id
+		LEFT JOIN tm_area ar on ar.id = tm.city
+		where 1=1 
+		
+			and tpo.order_type = 1
+
+		<if test="pd.cityid!=null and pd.cityid !=''">
+			AND tm.city IN (${pd.cityid})
+		</if>
+		<if test="pd.state != null and pd.state != ''">
+			and tpo.order_type = 1 and tpo.checked_state = #{pd.state}
+		</if>
+     	<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+     			<if test="pd.searchcriteria==1">
+			   	 and (tm.merchant_name LIKE  CONCAT('%','${pd.keyword}','%' ) or
+			   	 tm.merchant_num LIKE  CONCAT('%','${pd.keyword}','%' ) )  
+			   </if> 
+			    <if test="pd.searchcriteria==3">
+			    and tpo.order_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+			   <if test="pd.searchcriteria==4">
+			    and tm.contact_person LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+	    </if>
+	    <if test="pd.searchcriteria==2">
+			         <if test="pd.lastLoginStart!=null and pd.lastLoginStart!=''"><!-- 登录时间检索 -->
+			          and      tpo.order_date &gt;= #{pd.lastLoginStart} 
+		            </if>
+	              <if test="pd.lastLoginEnd!=null and pd.lastLoginEnd!=''"><!-- 登录时间检索 -->
+			        and tpo.order_date &lt;= #{pd.lastLoginEnd} 
+		           </if>
+		 </if>
+		   <if test="pd.type != 0 and pd.type!= '' and  pd.type!=null"><!-- 关键词检索 -->
+			    and tpo.type=${pd.type}
+	    	</if>
+			      ORDER BY tpo.id DESC
+	</select>
+	
+	<!-- 列表(全部) -->
+	<select id="GrouplistPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT                         
+		tpo.id,
+		tpo.order_num,
+		tpo.comment,
+		tpo.order_date,
+		tpo.deliver_date,
+		tpo.manager_name,
+		tm.merchant_name,
+		tm.contact_person,
+		tpo.manager_tel,
+		tpo.checked_state,
+		tpo.merchant_id,
+		tpo.type,
+		ar.area_name
+		FROM t_selling_order tpo
+		LEFT JOIN t_merchant as tm ON tm.ID =tpo.merchant_id
+		LEFT JOIN tm_area ar on ar.id = tm.city
+		where 1=1
+		and tpo.checked_state != 11
+			and tpo.order_type = 1
+
+		<if test="pd.cityid!=null and pd.cityid !=''">
+			AND tm.city IN (${pd.cityid})
+		</if>
+		<if test="pd.state != null and pd.state != ''">
+			 and tpo.checked_state = #{pd.state}
+		</if>
+     	<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+     			<if test="pd.searchcriteria==1">
+			   	 and (tm.merchant_name LIKE  CONCAT('%','${pd.keyword}','%' ) or
+			   	 tm.merchant_num LIKE  CONCAT('%','${pd.keyword}','%' ) )  
+			   </if> 
+			    <if test="pd.searchcriteria==3">
+			    and tpo.order_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+			   <if test="pd.searchcriteria==4">
+			    and tm.contact_person LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+	    </if>
+	    <if test="pd.searchcriteria==2">
+			         <if test="pd.lastLoginStart!=null and pd.lastLoginStart!=''"><!-- 登录时间检索 -->
+			          and      tpo.order_date &gt;= #{pd.lastLoginStart} 
+		            </if>
+	              <if test="pd.lastLoginEnd!=null and pd.lastLoginEnd!=''"><!-- 登录时间检索 -->
+			        and tpo.order_date &lt;= #{pd.lastLoginEnd} 
+		           </if>
+		 </if>
+		   <if test="pd.type != 0 and pd.type!= '' and  pd.type!=null"><!-- 关键词检索 -->
+			    and tpo.type=${pd.type}
+	    	</if>
+	    	
+	    	and tpo.group_num LIKE  CONCAT('%','${pd.group}','%' )  
+	    	GROUP BY tpo.merchant_id,tpo.checked_state,tpo.type
+			 ORDER BY tpo.id DESC
+	</select>
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into t_selling_order(
+			group_num,	
+			order_num,	
+			checked_state,	
+			order_date,	
+			deliver_date,	
+			deliver_style,	
+			deliver_address,	
+			manager_name,	
+			manager_tel,	
+			comment,	
+			order_amount,	
+			total_svolume,	
+			total_weight,		
+			is_printed,	
+			create_time
+		) values (
+			#{group_num},	
+			#{order_num},	
+			#{checked_state},	
+			#{order_date},	
+			#{deliver_date},	
+			#{deliver_style},	
+			#{deliver_address},	
+			#{manager_name},	
+			#{manager_tel},	
+			#{comment},	
+			#{order_amount},	
+			#{total_svolume},	
+			#{total_weight},	
+			#{is_printed},	
+			#{create_time}
+	
+		)
+	</insert>
+	<!-- 新增-->
+	<insert id="saveSellingOrder" useGeneratedKeys="true"  parameterType="java.util.List">
+		insert into t_selling_order(
+			group_num,	
+			order_num,	
+			checked_state,	
+			order_date,	
+			deliver_date,	
+			deliver_style,	
+			deliver_address,	
+			manager_name,	
+			manager_tel,	
+			comment,	
+			order_amount,	
+			total_svolume,	
+			total_weight,		
+			is_printed,	
+			create_time,
+			user_id,
+			merchant_id
+		) values 
+		 <foreach collection="list" item="item" index="index" separator="," >
+		(
+			#{item.groupNum},	
+			#{item.orderNum},	
+			#{item.checkedState},	
+			#{item.orderDate},	
+			#{item.deliverDate},	
+			#{item.deliverStyle},	
+			#{item.deliverAddress},	
+			#{item.managerName},	
+			#{item.managerTel},	
+			#{item.comment},	
+			#{item.orderAmount},	
+			#{item.totalSvolume},	
+			#{item.totalWeight},	
+			#{item.isPrinted},	
+			#{item.createTime},
+			#{item.user.USER_ID},
+			#{item.merchant.id}
+		)
+		</foreach>
+	</insert>
+	
+	<!-- 删除-->
+	<delete id="delete" parameterType="pd">
+		delete from t_selling_order
+		where 
+			id = #{id}
+	</delete>
+	<!-- 删除-->
+	<delete id="deleteList" parameterType="java.util.List">
+		delete from t_selling_order
+		where group_num in
+		<foreach collection="list" item ="model" open="(" separator="," close=")">
+			#{model.groupNum}
+		</foreach>
+	</delete>
+	
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update  t_selling_order
+			set 
+				deliver_date = #{deliver_date},
+				deliver_style = #{deliver_style},
+				deliver_address = #{deliver_address},
+				manager_name = #{manager_name},
+				manager_tel = #{manager_tel},
+				comment = #{comment},
+				order_amount = #{order_amount},
+				total_svolume = #{total_svolume},
+				total_weight = #{total_weight}
+			where 
+				id = #{id}
+	</update>
+	
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findById" parameterType="pd" resultMap="purchaseOrderResultMap">
+		select 
+			tp.group_num,	
+			tp.order_num,	
+			tp.checked_state,	
+			tp.order_date,	
+			tp.deliver_date,	
+			tp.deliver_style,	
+			tp.deliver_address,	
+			tp.manager_name,	
+			tp.manager_tel,	
+			tp.comment,	
+			tp.order_amount,	
+			tp.total_svolume,	
+			tp.total_weight,	
+			tp.is_printed,	
+			tp.create_time,
+			tp.id
+			
+		from 
+			t_selling_order tp
+		where 
+			tp.id=#{id}
+	</select>
+	<resultMap type="com.hy.entity.order.PurchaseOrder" id="purchaseOrderResultMap">
+	 	<id column="id" property="id"/>
+      	<result column="group_num" property="groupNum"/>
+   		<result column="order_num" property="orderNum"/>
+   		<result column="checked_state" property="checkedState"/>
+   		<result column="order_date" property="orderDate"/>
+   		<result column="deliver_date" property="deliverDate"/>
+   		<result column="deliver_style" property="deliverStyle"/>
+   		<result column="deliver_address" property="deliverAddress"/>
+   		<result column="manager_name" property="managerName"/>
+   		<result column="manager_tel" property="managerTel"/>
+   		<result column="comment" property="comment"/>
+   		<result column="order_amount" property="orderAmount"/>
+   		<result column="total_svolume" property="totalSvolume"/>
+   		<result column="total_weight" property="totalWeight"/>
+   		<result column="is_printed" property="isPrinted"/>
+   		<result column="create_time" property="createTime"/>
+   		
+	</resultMap>
+	<!-- 列表(全部) -->
+	<select id="listAll" parameterType="pd" resultType="pd">
+		select
+				a.group_num,	
+				a.order_num,	
+				a.checked_state,	
+				a.order_date,	
+				a.deliver_date,	
+				a.deliver_style,	
+				a.deliver_address,	
+				a.manager_name,	
+				a.manager_tel,	
+				a.comment,	
+				a.order_amount,	
+				a.total_svolume,	
+				a.total_weight,	
+				a.is_printed,	
+				a.create_time
+			
+		from 
+				t_selling_order a
+	</select>
+	
+	<!-- 批量删除 -->
+	<delete id="deleteAll" parameterType="String">
+		delete from t_selling_order
+		where 
+			id in
+		<foreach item="item" index="index" collection="array" open="(" separator="," close=")">
+                 #{item}
+		</foreach>
+	</delete>
+	<!-- 根据销售码查询销售订单基本信息 -->
+	<select id="findorder" parameterType="String" resultType="pd">
+		select 
+			t.*
+		FROM t_selling_order t 
+		where 1=1 and t.order_num = #{order_num};
+		
+	</select>
+	<!-- 根据门店id查询销售订单基本信息 -->
+	<select id="findMDorder" parameterType="String" resultType="pd">
+		select 
+			t.*,max(t.order_date) orderdate
+		FROM t_selling_order t 
+		where 1=1 
+			and t.merchant_id = #{merchant_id}
+			group by t.merchant_id
+	</select>
+	<!-- 根据销售单码查询销售单详情 -->
+	<select id="findorderitem" parameterType="String" resultType="pd"  useCache="false">
+	SELECT
+		t.id,
+		t.order_num,
+		t.group_num,
+		t.final_quantity,
+		t.quantity,
+		t.creator,
+		t.`comment`,
+		t.gift_quantity,
+		p.product_name,
+		p.bar_code,
+		p.specification,
+		p.sku_weight,
+		p.sku_volume,
+		p.box_number,
+		tpp.product_price sale_price,
+		tpp2.product_price purchase_price,
+		t.product_id,
+		t.gift_quantity
+	FROM
+		t_selling_order_item t
+	LEFT JOIN t_product p ON p.id = t.product_id
+	left join tp_product_price tpp on tpp.product_id=p.id and tpp.price_type=2
+	left join tp_product_price tpp2 on tpp2.product_id=p.id and tpp2.price_type=1
+	WHERE
+		1 = 1
+		AND t.order_num =#{order_num}
+		AND t.final_quantity != 0
+	</select>
+		<!-- 根据销售单码查询销售单详情 -->
+	<select id="findMDorderitem" parameterType="String" resultType="pd">
+	select
+ 		t.id,
+		t.order_num,
+		t.group_num,
+		p.product_num,
+		tpo.checked_state,
+		t.purchase_price,
+		sum(t.final_quantity) final_quantity,
+		sum(t.quantity) quantity,
+		t.creator,
+		t.`comment`,
+		sum(t.gift_quantity) gift_quantity,
+		p.product_name,
+		p.bar_code,
+		p.specification,
+		sum(p.sku_weight) sku_weight,
+		sum(p.sku_volume) sku_volume,
+		tpp.product_price sale_price,
+		t.product_id,
+		sum(t.gift_quantity) gift_quantity
+	 from t_selling_order_item t left join t_selling_order tpo on tpo.order_num = t.order_num
+	LEFT JOIN t_product p on p.id = t.product_id
+	left join tp_product_price tpp on tpp.product_id=p.id and tpp.price_type=2
+	where  1=1 and  tpo.order_type = 1
+	AND tpo.order_type = 1
+	AND tpo.checked_state = #{state} 
+	and tpo.merchant_id = #{merchant_id}
+	and tpo.type = #{type}
+	group by tpo.merchant_id,t.product_id 
+	ORDER BY t.id desc 
+	</select>
+	<!-- 批量更新销售订单状态 -->
+	<update id="updateBatch" parameterType="java.util.List">
+		update t_selling_order set checked_state = 2 
+		where id in 
+		 <foreach item="item" index="index" collection="list" 
+                         open="(" separator="," close=")">
+                        #{item}
+          </foreach>
+	</update>
+	<!-- 更新订单详情 -->
+	<update id="editorderitem" parameterType="pd">
+			update t_selling_order_item t 
+			set t.quantity = #{quantity},
+			final_quantity=#{quantity}
+			where t.id = #{id}
+		
+	</update>
+	<!-- 回滚：批量更新销售订单状态 -->
+	<update id="updateBatch2" parameterType="String">
+		update t_selling_order set checked_state = 1 
+		where id in 
+		 <foreach item="item" index="index" collection="list" 
+                         open="(" separator="," close=")">
+                        #{item}
+          </foreach>
+	</update>
+	<!-- 根据商品条码查询供货商信息 -->
+	<select id="findsupplier" parameterType="pd" resultType="pd">
+		select sup.id, p.product_id,sup.supplier_name,t.bar_code, sup.supplier_tel ,sup.address,sup.contact_person,
+		p.product_price, ifnull(t.sku_volume,0) sku_volume,ifnull(t.sku_weight,0) sku_weight   from tp_supplier sup 
+			LEFT JOIN tp_product_price p on p.relation_id = sup.id
+			LEFT JOIN t_product t on t.id = p.product_id
+			where 1=1  and p.price_type = 1
+			<if test="bar_code != null and bar_code !=''">
+				and t.bar_code = #{bar_code}
+			</if>
+			<if test="id != null and id !=''">
+				and sup.id = #{id}
+			</if>
+	</select>
+	<!-- 根据供货商id、审核状态 查询采购单 -->
+	<select id="findpurchaseorder" parameterType="pd" resultType="pd">
+		select id,order_num ,group_num,order_amount,	ifnull(total_svolume, 0) total_svolume,
+			ifnull(total_weight, 0) total_weight from t_purchase_order t 
+		where t.checked_state = 1 and t.status = 1
+		 and t.supplier_id = #{supid}
+	</select>
+	<!-- 根据订单num 查询采购单详情 -->
+	<select id="findpurchase_order_item" parameterType="pd" resultType="pd"  useCache="false">
+		select * from t_purchase_order_item t where t.order_num = #{order_num}  and product_id = #{product_id} 
+	</select>
+	<update id="updatepurchase_order" parameterType="pd">
+		update  t_purchase_order
+			set 
+				order_amount = #{order_amount},
+				total_svolume = #{total_svolume},
+				total_weight = #{total_weight}
+			where 
+				id = #{id}
+	</update>
+		<update id="editpurchase_order_item" parameterType="pd">
+		update  t_purchase_order_item
+			set 
+				suggest_quantity=#{suggest_quantity},
+				quantity = #{quantity},
+				final_quantity=#{final_quantity},
+				gift_quantity = #{gift_quantity}
+			where 
+				id = #{id}
+	</update>
+	<!-- 销售订单审核-地市审核改变状态为1 -->
+	<update id="editsell_order_check_state" parameterType="pd">
+		update  t_selling_order
+			set
+				checked_state=1
+			where
+				id = #{id}
+	</update>
+	<!-- 根据group后的id 查询这些门店下的未审核订单 -->
+	<select id="findOrderById" parameterType="pd" resultType="String">
+		SELECT
+			tpo.id
+		FROM
+			t_selling_order tpo
+		WHERE
+			1 = 1
+		AND tpo.order_type = 1
+		AND tpo.checked_state =1
+		and tpo.merchant_id in (SELECT t.merchant_id FROM t_selling_order t WHERE t.id IN (${ids}))
+		and tpo.group_num LIKE  CONCAT('%','${group}','%' )  
+		
+	</select>
+</mapper>

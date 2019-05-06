@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ENOrderMapper">
+
+
+    <update id="updateentype" parameterType="pd">
+		update t_en_warehouse_order
+		set checked_state=#{checked_state},
+		order_date=now()
+		where order_num=#{order_num}
+	</update>
+    <select id="findenorderitem" parameterType="pd" resultType="pd" flushCache="false">
+
+        SELECT teoi.*,tpt.product_name,tpt.cargo_space_id from t_en_order_item teoi
+        left join t_product tpt on tpt.id=teoi.product_id
+        where 1=1
+        <if test="id!=null and id!=''">
+            and teoi.id=${id}
+        </if>
+        <if test="order_num!='' and order_num!=null">
+            and teoi.order_num=#{order_num}
+        </if>
+
+    </select>
+
+    <update id="updateEnOrderAmount" parameterType="java.util.List">
+        update t_en_warehouse_order tewo,
+        (select sum(tpt.sku_volume*tsoi.final_quantity) skv,sum(tpt.sku_weight*tsoi.final_quantity)
+        skw,sum(tsoi.final_quantity*tsoi.purchase_price) aom,tsoi.order_num
+        from t_product tpt LEFT JOIN t_en_order_item tsoi on tsoi.product_id=tpt.id
+        where tsoi.order_num in
+        <foreach item="item" collection="list" open="(" close=")" separator=",">
+            #{item.order_num}
+        </foreach>
+        group by tsoi.order_num
+        ) gg
+        set
+        tewo.final_amount=gg.aom,
+        tewo.total_svolume=gg.skv,
+        tewo.total_weight=gg.skw,
+        tewo.amount=gg.aom
+        where
+
+        tewo.order_num=gg.order_num
+        and
+        tewo.order_num in
+        <foreach item="item" collection="list" open="(" close=")" separator=",">
+            #{item.order_num}
+        </foreach>
+    </update>
+    <insert id="saveEnOrderlist" parameterType="java.util.List">
+        insert into t_en_warehouse_order
+        (
+        group_num,
+        order_num,
+        checked_state,
+        supplier_id,
+        manager_name,
+        manager_tel,
+        comment,
+        final_amount,
+        total_svolume,
+        total_weight,
+        is_ivt_order_print,
+        is_temporary,
+        is_order_print,
+        ivt_state,
+        state,
+        amount,
+        order_type,
+        ck_id,
+        user_id
+
+        )
+        values
+        <foreach item="item" collection="list" separator=",">
+            (#{item.group_num},#{item.order_num},${item.checked_state},
+
+            #{item.supplier_id},#{item.manager_name},#{item.manager_tel},
+
+            #{item.comment},#{item.final_amount},#{item.total_svolume},
+
+            #{item.total_weight},#{item.is_ivt_order_print},#{item.is_temporary},
+
+            #{item.is_order_print},#{item.ivt_state},${item.state},
+
+            #{item.amount},#{item.order_type},${item.ck_id},${item.user_id}
+            )
+        </foreach>
+    </insert>
+
+    <insert id="saveEnOrderItemlsit" parameterType="java.util.List">
+        insert into t_en_order_item(
+        group_num,
+        order_num,
+        product_id,
+        purchase_price,
+        quantity,
+        final_quantity,
+        svolume,
+        weight,
+        is_split_ivt,
+        is_ivt_BK,
+        creator,
+        state,
+        gift_quantity
+        <!-- ,product_time -->
+        )values
+        <foreach item="item" collection="list" separator=",">
+            (#{item.group_num},#{item.order_num},${item.product_id},
+
+            #{item.purchase_price},#{item.quantity},#{item.final_quantity},
+
+            #{item.svolume},#{item.weight},${item.is_split_ivt},
+
+            #{item.is_ivt_BK},#{item.creator},#{item.state},#{item.gift_quantity}
+            <!-- <if test="item.product_time!=null and item.product_time!=''">
+               , #{item.product_time}
+           </if> -->
+            )
+        </foreach>
+    </insert>
+
+
+    <!-- 列表(全部) -->
+    <select id="eNOrderlistPage" parameterType="page" resultType="pd"
+            useCache="false">
+        SELECT
+        teno.id,
+        teno.group_num,
+        teno.order_num,
+        teno.checked_state,
+        teno.order_date,
+        teno.manager_name,
+        teno.manager_tel ,
+        teno.comment ,
+        teno.final_amount ,
+        teno.total_svolume ,
+        teno.total_weight ,
+        teno.paid_amount ,
+        teno.is_ivt_order_print,
+        teno.is_temporary,
+        teno.create_time,
+        teno.is_order_print,
+        teno.ivt_state,
+        ts.id as supplier_id,
+        ts.supplier_name,
+        ts.contact_person,
+        ts.contact_person_mobile,
+        ts.address,
+        ts.supplier_num,
+        ts.supplier_name,
+        ts.supplier_tel,
+        ts.remarks,
+        su.USER_ID,
+        su.USERNAME,
+        su.PHONE,
+        su.NUMBER
+        FROM t_en_warehouse_order teno
+        LEFT JOIN t_supplier ts ON ts.id = teno.supplier_id AND ts.state=1
+        LEFT JOIN sys_user su ON su.id = teno.user_id
+        where 1=1
+        <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+
+            <if test="pd.searchcriteria==1">
+                and ts.supplier_name LIKE CONCAT('%','${pd.keyword}','%' )
+            </if>
+            <if test="pd.searchcriteria==3">
+                and teno.order_num LIKE CONCAT('%','${pd.keyword}','%' )
+            </if>
+        </if>
+        <if test="pd.searchcriteria==2">
+            <if test="pd.lastLoginStart!=null and pd.lastLoginStart!=''">
+                and teno.order_date &gt;= #{pd.StartDate}
+            </if>
+            <if test="pd.lastLoginEnd!=null and pd.lastLoginEnd!=''">
+                and teno.order_date &lt;= #{pd.EndDate}
+            </if>
+        </if>
+        ORDER BY teno.id DESC
+    </select>
+
+    <!-- 新增-->
+    <insert id="save" parameterType="pd">
+		insert into t_en_warehouse_order(
+			group_num,
+			order_num,
+			checked_state,
+			order_date,
+			manager_name,
+			manager_tel ,
+			comment,
+			final_amount ,
+			total_svolume ,
+			total_weight ,
+			paid_amount ,
+			is_ivt_order_print,
+			is_temporary,
+			create_time,
+			is_order_print,
+			ivt_state,
+			supplier_id,
+			user_id
+			
+		) values (
+			#{group_num},	
+			#{order_num},	
+			#{checked_state},	
+			#{order_date},
+			#{manager_name},	
+			#{manager_tel},	
+			#{comment},	
+			#{final_amount},	
+			#{total_svolume},
+			#{total_weight},
+			#{paid_amount},	
+			#{is_ivt_order_print},
+			#{is_temporary},
+			NOW(),
+			#{is_order_print},				
+			#{ivt_state},	
+			#{supplier_id},	
+			#{user_id}
+		)
+	</insert>
+    <!-- 新增-->
+    <insert id="saveENOrder" useGeneratedKeys="true" parameterType="java.util.List">
+        insert into t_en_warehouse_order(
+        group_num,
+        order_num,
+        checked_state,
+        order_date,
+        manager_name,
+        manager_tel ,
+        comment,
+        final_amount ,
+        total_svolume ,
+        total_weight ,
+        paid_amount ,
+        is_ivt_order_print,
+        is_temporary,
+        create_time,
+        is_order_print,
+        ivt_state,
+        supplier_id,
+        user_id,
+        order_type,
+        ck_id
+        ) values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.groupNum},
+            #{item.orderNum},
+            #{item.checkedState},
+            #{item.orderDate},
+            #{item.managerName},
+            #{item.managerTel},
+            #{item.comment},
+            #{item.finalAmount},
+            #{item.totalSvolume},
+            #{item.totalWeight},
+            #{item.paidAmount},
+            #{item.isIvtOrderPrint},
+            #{item.isTemporary},
+            NOW(),
+            #{item.isOrderPrint},
+            1,
+            #{item.supplier.id},
+            #{item.user.USER_ID},
+            #{item.orderType},
+            ${item.ckId}
+            )
+        </foreach>
+    </insert>
+
+
+    <!-- 删除-->
+    <delete id="delete" parameterType="pd">
+		UPDATE  t_en_warehouse_order
+		SET state=2
+		WHERE 
+			id = #{id}
+	</delete>
+    <!-- 删除-->
+    <delete id="deleteList" parameterType="java.util.List">
+        delete from t_en_warehouse_order
+        where group_num in
+        <foreach collection="list" item="model" open="(" separator="," close=")">
+            #{model.groupNum}
+        </foreach>
+    </delete>
+    <!-- 修改 -->
+    <update id="edit" parameterType="pd">
+        update t_en_warehouse_order
+        set
+        <if test="checked_state!=null and checked_state!=''">
+            checked_state=#{checked_state},
+        </if>
+        <if test="order_date!=null and order_date!=''">
+            order_date=#{order_date},
+        </if>
+        <if test="manager_name!=null and manager_name!=''">
+            manager_name=#{manager_name},
+        </if>
+        <if test="manager_tel!=null and manager_tel!=''">
+            manager_tel= #{manager_tel},
+        </if>
+        <if test="comment!=null and comment!=''">
+            comment=#{comment},
+        </if>
+        <if test="final_amount!=null and final_amount!=''">
+            final_amount=#{final_amount} ,
+        </if>
+        <if test="total_svolume!=null and total_svolume!=''">
+            total_svolume=#{total_svolume} ,
+        </if>
+        <if test="total_weight!=null and total_weight!=''">
+            total_weight=#{total_weight} ,
+        </if>
+        <if test="paid_amount!=null and paid_amount!=''">
+            paid_amount=#{paid_amount} ,
+        </if>
+        <if test="is_ivt_order_print!=null and is_ivt_order_print!=''">
+            is_ivt_order_print=#{is_ivt_order_print},
+        </if>
+        <if test="is_order_print!=null and is_order_print!=''">
+            is_order_print=#{is_order_print},
+        </if>
+        <if test="ivt_state!=null and ivt_state!=''">
+            ivt_state=#{ivt_state},
+        </if>
+        <if test="supplier_id!=null and supplier_id!='' and supplier_id>0">
+            supplier_id=#{supplier_id},
+        </if>
+        <if test="amount != null and amount != ''">
+        	amount = #{amount},
+        </if>
+        <if test="user_id!=null and user_id!='' and user_id>0">
+            user_id=#{user_id}
+        </if>
+        where
+        id = #{id}
+    </update>
+
+
+    <!-- 通过ID获取数据 -->
+    <select id="findByIdOrOrderNum" parameterType="pd" resultType="pd">
+        SELECT
+        teno.id,
+        teno.group_num,
+        teno.order_num,
+        teno.checked_state,
+        teno.order_date,
+        teno.manager_name,
+        teno.manager_tel ,
+        teno.comment ,
+        teno.final_amount ,
+        teno.total_svolume ,
+        teno.total_weight ,
+        teno.paid_amount ,
+        teno.is_ivt_order_print,
+        teno.is_temporary,
+        teno.create_time,
+        teno.is_order_print,
+        teno.ivt_state,
+        ts.id as supplier_id,
+        ts.supplier_name,
+        ts.contact_person,
+        ts.contact_person_mobile,
+        ts.address,
+        ts.supplier_num,
+        ts.supplier_name,
+        ts.supplier_tel,
+        ts.remarks,
+        su.USER_ID,
+        su.USERNAME,
+        su.PHONE,
+        su.NUMBER
+        FROM t_en_warehouse_order teno
+        LEFT JOIN t_supplier ts ON ts.id = teno.supplier_id AND ts.state=1
+        LEFT JOIN sys_user su ON su.id = teno.user_id
+        WHERE 1=1
+        <if test="id!=null and id!='' and id>0">
+            AND teno.id=#{id}
+        </if>
+        <if test="order_num!=null and order_num!='' ">
+            AND teno.order_num=#{order_num}
+        </if>
+    </select>
+
+</mapper>

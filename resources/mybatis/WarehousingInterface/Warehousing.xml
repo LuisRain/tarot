@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="warehousing">
+	<!-- 根据供应商编码查询供应商信息 -->
+	<select id="findsupplierinfo" parameterType="String" resultType="pd">
+		select t.supplier_name,imp.order_num ,imp.group_num from tp_supplier t
+			LEFT JOIN t_en_warehouse_order imp  on imp.supplier_id = t.id
+			where 1=1 
+				and  t.supplier_num = #{supplier_num}
+		and imp.checked_state = 1
+		LIMIT 0 ,1
+	</select>
+	<!-- 入库 -->
+	<insert id="insertwarehousing" parameterType="pd" >
+		insert into t_en_order_item(
+		order_num,
+		group_num,
+		product_id,
+		purchase_price,
+		quantity,
+		final_quantity,
+		svolume ,
+		weight ,
+		is_split_ivt ,
+		is_ivt_BK,
+		en_time,
+		creator ,
+		comment,
+		create_time,
+		state,
+		reason,
+		product_time
+		) values (#{order_num},#{group_num},#{product_id},
+		#{purchase_price},#{quantity},#{final_quantity},0,0,1,3,now(),null,'',now(),1,'',#{product_time})
+	</insert>
+	
+	<!-- 根据商品条形码查询订单详情中是否有该条商品的记录 -->
+	<select id="findpro" parameterType="pd" resultType="pd">
+		select t.order_num,p.id from t_en_order_item t 
+		LEFT JOIN t_product p on p.id = t.product_id
+		where p.bar_code = #{barcode}  
+		LIMIT 0 ,1
+	</select>
+	<!-- 根据商品条形码查询订单详情中是否有该条商品的记录 -->
+	<select id="findproinfo" parameterType="String" resultType="pd">
+		select p.product_price,t.id pid from t_product t 
+		LEFT JOIN tp_product_price p on p.product_id = t.id and p.price_type=1
+		where t.bar_code = #{barcode}
+	</select>
+	<!-- 更新信息 -->
+	<update id="updateitem" parameterType="pd">
+		UPDATE t_en_order_item t set t.final_quantity = #{number} ,product_time=#{prodate}
+		where  	t.state = 1 
+		and t.product_id = #{pid}
+	</update>
+	<!-- 根据条形码查询保质期 -->
+	<select id="findexpire_days" parameterType="String" resultType="pd">
+		select p.expire_days, p.product_name,s.zone,s.storey,s.storey_num from t_product p 
+		LEFT JOIN tp_cargo_space s on s.id = p.cargo_space_id
+		 where p.bar_code = #{barcode}
+	</select>
+	<!-- 根据货位号查询货位id -->
+	<select id="findtp_cargo_space" parameterType="pd" resultType="pd">
+		select t.id from tp_cargo_space t where t.zone =#{zone}  and t.storey=#{storey}  and t.storey_num=#{storey_num} LIMIT 0 ,1
+	</select>
+	<!-- 根据商品编码更新货位 -->
+	<update id="updatet_product" parameterType="pd">
+		update t_product p set p.cargo_space_id =#{id}  where p.bar_code = #{barcode} 
+	</update>
+	<!-- 根据货位号新增货位，并返回id -->
+	<insert id="inserttp_cargo_space" parameterType="pd" >
+		INSERT tp_cargo_space (cargo_space_num,zone,storey,storey_num)
+		 VALUES(1,#{zone},#{storey},#{storey_num})
+	</insert>
+</mapper>

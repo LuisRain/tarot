@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="OrderGroupMapper">
+
+
+	<resultMap type="OrderGroup" id="orderGroupResultMap">
+		<id column="orderGroupId" property="orderGroupId" />
+		<result column="orderGroupNum" property="orderGroupNum" />
+		<result column="createTime" property="createTime" />
+		<result column="state" property="state" />
+		<result column="ckname" property="ckname" />
+		<result column="group_num" property="groupNum" />
+		<association property="user" javaType="User" resultMap="userResultMap" />
+		<collection property="exos" ofType="EXOrder" resultMap="exoResultMap" javaType="ArrayList"/>
+		<collection property="enos" ofType="ENOrder" resultMap="enoResultMap" javaType="ArrayList"/>
+	</resultMap>
+	
+	<resultMap id="exoResultMap" type="EXOrder">
+		<result property="id" column="exoId" />
+		<result property="orderNum" column="exoOrderNum" />
+	</resultMap>
+	
+	
+	<resultMap id="enoResultMap" type="ENOrder">
+		<result property="id" column="enoId" />
+		<result property="orderNum" column="enoOrderNum" />
+	</resultMap>
+	<resultMap id="userResultMap" type="User">
+		<result property="USER_ID" column="USER_ID" />
+		<result property="NAME" column="NAME" />
+	</resultMap>
+	
+	<!-- 列表(全部) resultMap="orderGroupResultMap" -->
+	<select id="inferiOrderGrouplistPage" parameterType="page" resultMap="orderGroupResultMap"   useCache="false">
+		SELECT
+		tog.id,
+		tog.group_num,
+		su.USERNAME,
+		su.NAME,
+		tog.create_time,
+		tog.state,
+		teno.id enoId,
+		teno.order_num enoOrderNum,
+		texo.id exoId,
+		texo.order_num exoOrderNum
+		FROM t_order_group tog
+		LEFT JOIN t_en_warehouse_order teno ON teno.group_num = tog.group_num and
+		teno.order_type=4
+		LEFT JOIN t_ex_warehouse_order texo ON texo.group_num = tog.group_num and
+		texo.order_type= 4
+		LEFT JOIN sys_user su ON tog.user_id = su.USER_ID
+		WHERE 		tog.state = 1
+			AND tog.group_type = 5
+			<if test="pd.ck_id!=0">
+				and tog.ck_id=${pd.ck_id}
+			</if>
+		<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			<if test="pd.searchcriteria==1">
+				and tog.group_num LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+			<if test="pd.searchcriteria==3">
+				and su.USERNAME LIKE CONCAT('%','${pd.keyword}','%' )
+			</if>
+		</if>
+		<if test="pd.searchcriteria==2">
+			<if test="pd.startDate!=null and pd.startDate!=''">
+				and teno.order_date &gt;= #{pd.startDate}
+			</if>
+			<if test="pd.endDate!=null and pd.endDate!=''">
+				and teno.order_date &lt;= #{pd.endDate}
+			</if>
+			ORDER BY tog.id DESC
+		</if>
+	</select>
+	<select id="orderGroupNew" parameterType="pd" resultMap="orderGroupResultMap"
+		useCache="false">
+		SELECT
+		tog.id orderGroupId,
+		tog.group_num orderGroupNum,
+		tog.create_time createTime,
+		tog.state,
+		tog.group_type,
+		su.USER_ID USER_ID,
+		su.NAME NAME,
+		teno.id enoId,
+		teno.order_num enoOrderNum,
+		texo.id exoId,
+		texo.order_num exoOrderNum,
+		tpck.name ckname
+		FROM t_order_group tog
+		LEFT JOIN t_en_warehouse_order teno ON teno.group_num = tog.group_num AND teno.order_type=1
+		LEFT JOIN t_ex_warehouse_order texo ON texo.group_num = tog.group_num AND texo.order_type=1
+		LEFT JOIN sys_user su ON tog.user_id = su.USER_ID
+		left join tp_warehouse_ck tpck on tpck.id=tog.ck_id
+		WHERE tog.state=1 and tog.group_type=1
+		<if test="ck_id!=0">
+				and tog.ck_id=${ck_id}
+		</if>
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			<if test="searchcriteria==1">
+				and tog.group_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==3">
+				and (su.USERNAME LIKE CONCAT('%','${keyword}','%' ) OR su.NAME LIKE
+				CONCAT('%','${keyword}','%' ))
+			</if>
+		</if>
+		<if test="searchcriteria==2">
+			<if test="startDate!=null and startDate!=''">
+				and teno.order_date &gt;= #{startDate}
+			</if>
+			<if test="endDate!=null and endDate!=''">
+				and teno.order_date &lt;= #{endDate}
+			</if>
+		</if>
+		ORDER BY tog.id DESC
+	</select>
+	<select id="orderGroupOfGift" parameterType="pd"
+		resultMap="orderGroupResultMap" useCache="false">
+		SELECT
+		tog.id orderGroupId,
+		tog.group_num orderGroupNum,
+		tog.create_time createTime,
+		tog.state,
+		tog.group_type,
+		su.USER_ID USER_ID,
+		su.NAME NAME,
+		teno.id enoId,
+		teno.order_num enoOrderNum,
+		texo.id exoId,
+		texo.order_num exoOrderNum
+		FROM t_order_group tog
+		LEFT JOIN t_en_warehouse_order teno ON teno.group_num = tog.group_num AND
+		teno.order_type=3
+		LEFT JOIN t_ex_warehouse_order texo ON texo.group_num = tog.group_num AND
+		texo.order_type=3
+		LEFT JOIN sys_user su ON tog.user_id = su.USER_ID
+		WHERE tog.state=1 and tog.group_type=6
+		<if test="ck_id!=0">
+				and tog.ck_id=${ck_id}
+		</if>
+		<if test="keyword != null and keyword != ''"><!-- 关键词检索 -->
+			<if test="searchcriteria==1">
+				and tog.group_num LIKE CONCAT('%','${keyword}','%' )
+			</if>
+			<if test="searchcriteria==3">
+				and (su.USERNAME LIKE CONCAT('%','${keyword}','%' ) OR su.NAME LIKE
+				CONCAT('%','${keyword}','%' ))
+			</if>
+		</if>
+		<if test="searchcriteria==2">
+			<if test="startDate!=null and startDate!=''">
+				and teno.order_date &gt;= #{startDate}
+			</if>
+			<if test="endDate!=null and endDate!=''">
+				and teno.order_date &lt;= #{endDate}
+			</if>
+		</if>
+		ORDER BY tog.id DESC
+	</select>
+	<!-- 根据批次号查询批次信息 -->
+	<select id="getOrderGroupByOrderGroupNum" parameterType="String"
+		resultType="OrderGroup">
+		SELECT
+		tog.id,
+		tog.group_num,
+		tog.create_time,
+		tog.state,
+		tog.group_type,
+		su.USERNAME,
+		su.NAME,
+		FROM t_order_group tog,sys_user su
+		WHERE tog.user_id=su.USER_ID
+		AND tog.group_num = #{orderGroupNum}
+	</select>
+	
+	<!-- 添加 -->
+	<insert id="insert" useGeneratedKeys="true" parameterType="OrderGroup">
+		insert into t_order_group (
+		group_num,
+		user_id,
+		group_type,
+		create_time,
+		state,
+		ck_id
+		) values (
+		#{orderGroupNum},
+		#{user.USER_ID},
+		#{groupType},
+		NOW(),
+		1,
+		${ckId}
+		);
+	</insert>
+	<update id="updateState" parameterType="pd">
+		update t_order_group set state = 2 where id=#{id}
+	</update>
+	<update id="updateStateOforderGroup" parameterType="pd">
+		update t_order_group set state = 2 where group_num = #{group_num};
+	</update>
+	<!-- 删除 -->
+	<delete id="delete" parameterType="pd">
+		delete from t_order_group
+		where
+		group_num = #{group_num}
+	</delete>
+
+
+	<!-- 查询最近使用的批次信息 -->
+	<select id="getOrderGroupNum" resultType="String">
+		SELECT
+		tp.group_num
+		FROM
+		t_order_group as tp
+		ORDER by id DESC
+		LIMIT 0,1
+	</select>
+
+</mapper>

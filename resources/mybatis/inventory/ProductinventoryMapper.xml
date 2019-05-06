@@ -1,0 +1,389 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ProductinventoryMapper">
+
+
+
+	<update id="updateQuantity" parameterType="pd">
+		update t_product_inventory
+		set product_quantity=${quantity}
+		where id=${id}
+	</update>
+	<!-- 采购退货查询库存信息 -->
+	<select id="cgfindproductin" parameterType="pd" resultType="pd" flushCache="false">
+		select * from t_product_inventory tpi
+		where tpi.product_id in (
+			select id from t_product where product_num=(select product_num from t_product where id=${product_id})
+		) and tpi.product_quantity!=0
+		and tpi.warehouse_id=2
+		order by product_date asc
+	</select>
+	<!-- 查询库存信息 -->
+	<select id="findproductin" parameterType="pd" resultType="pd" flushCache="false">
+		select * from t_product_inventory tpi
+			where tpi.product_id=${product_id} and tpi.product_quantity!=0 and tpi.warehouse_id=1
+		<!-- select * from t_product_inventory tpi
+		where tpi.product_id in (
+			select id from t_product where product_num=(select product_num from t_product where id=${id})
+					
+		)  -->
+	</select>
+
+	<!-- 新增 -->
+	<insert id="save" parameterType="pd" keyProperty="id">
+		insert into
+		t_product_inventory(
+		product_id,
+		warehouse_id,
+		product_quantity,
+		state,
+		ck_id
+		<if test="product_date!=null and product_date!=''">
+			,product_date
+		</if>
+		)value(
+		#{product_id},
+		#{warehouse_id},
+		#{product_quantity},
+		#{state},
+		${ck_id}
+		<if test="product_date!=null and product_date!=''">
+			,#{product_date}
+		</if>
+		)
+	</insert>
+	<!-- 添加库存记录 -->
+	<insert id="savehistory" parameterType="pd" keyProperty="id">
+		insert into t_product_inventory_history(
+		rck_quantity,
+		rck_type,
+		user_id,
+		ck_id,
+		comment,
+		product_id,
+		order_num,
+		warehouse_id
+		) VALUES (
+		   ${quantity},
+		   ${rck_type},
+		   #{user_id},
+		   #{ck_id},
+		   #{comment},
+		   #{product_id},
+		   #{order_num},
+		   ${warehouseId}
+		)
+	</insert>
+	
+	<update id="updatehandheldInventory" parameterType="pd">
+		update t_product tpt
+		
+		set tpt.cargo_space_id=${id}
+		
+		where tpt.bar_code=#{bar_code} 
+
+	</update>
+	
+	<!-- 更新商品库存 -->
+
+	<update id="updateProductinventory" parameterType="pd">
+		update
+		t_product_inventory
+		set product_quantity =${quantity}
+		where product_id =${productId}
+		and warehouse_id = ${warehouseId}
+		and ck_id=${ck_id}
+
+	</update>
+
+	<!-- 日期更新商品库存 -->
+
+	<update id="updateProducData" parameterType="pd">
+		update
+		t_product_inventory
+		set product_quantity =#{quantity}
+		where id =#{id}
+		and warehouse_id = #{warehouseId}
+		and ck_id=#{ck_id}
+		<if test="product_date!=null and product_date!=''">
+			and product_date=#{product_date}
+		</if>
+
+	</update>
+	
+	<!-- 查询现有的库存数量 -->
+	<select id="findProductInventory" parameterType="pd" resultType="pd">
+		SELECT
+		t_product_inventory.product_quantity
+		FROM
+		t_product_inventory
+		WHERE
+		t_product_inventory.product_id =${productId} AND
+		t_product_inventory.ck_id =${ck_id} and
+		t_product_inventory.warehouse_id = ${warehouseId} ;
+
+	</select>
+	<!-- 查询库存数量 -->
+	<select id="findProductInventoryData" parameterType="pd" resultType="pd"   useCache="false">
+		SELECT
+		id,
+		product_quantity,
+		product_id,
+		product_date
+		FROM
+		t_product_inventory
+		WHERE
+		t_product_inventory.product_id =#{productId} AND
+		t_product_inventory.ck_id =#{ck_id} and
+		t_product_inventory.warehouse_id = #{warehouseId} 
+		and t_product_inventory.product_quantity > 0
+		ORDER BY product_date;
+
+	</select>
+	
+	<select id="sumquantity" parameterType="pd" resultType="pd">
+		SELECT
+		sum(tpi.product_quantity) sumpro
+		FROM
+		t_product_inventory tpi
+		WHERE
+		tpi.product_id =#{productId} AND
+		tpi.ck_id =#{ck_id} and
+		tpi.warehouse_id = #{warehouseId} ;
+	</select>
+	
+	<update id="dropTable">
+		DROP TABLE
+		IF EXISTS temp_product;
+	</update>
+	<update id="createTable">
+
+		CREATE TEMPORARY TABLE temp_product (
+		excelrow VARCHAR
+		(50),
+		barcode VARCHAR (50),
+		productname VARCHAR (50),
+		quantity VARCHAR
+		(50),
+		type VARCHAR (50),
+		reason VARCHAR (50),
+		productid VARCHAR (50),
+		status VARCHAR (50)
+
+
+		)
+	</update>
+	<insert id="tempsave" parameterType="java.util.List">
+
+		INSERT INTO temp_product (excelrow, barcode, productname,
+		quantity,reason,type, productid)
+		VALUES
+		<foreach collection="list" item="item" index="index"
+			separator=",">
+			(#{item.excelrow},
+			#{item.barcode},
+			#{item.productname},
+			#{item.quantity},
+			#{item.reason},
+			#{item.type},
+			#{item.productid}
+
+
+			)
+		</foreach>
+	</insert>
+
+
+	<select id="TemplistPage" parameterType="page" resultType="pd">
+		select * from temp_product
+		<if test="pd.keyword != null and pd.keyword != ''">
+			where type=${pd.keyword}
+		</if>
+	</select>
+	<select id="geProductByidhistorylistPage" parameterType="page"
+		resultType="pd">
+		select tpih.order_num,tpt.product_name,tmt.merchant_name,tps.supplier_name,tpih.rck_quantity,tpih.rck_date,tmu.unit_name,tpih.rck_type,tpw.warehouse_name
+		 from t_product_inventory_history tpih
+		left join t_product tpt on tpt.id=tpih.product_id
+		left join tp_meterage_unit AS tmu on tmu.id=tpt.unit
+		left join t_ex_warehouse_order texwo on texwo.order_num=tpih.order_num
+		left join t_merchant tmt on tmt.id=texwo.merchant_id
+		left join t_en_warehouse_order tenwo on tenwo.order_num=tpih.order_num
+		left join tp_supplier tps on tps.id=tenwo.supplier_id
+		left join tp_warehouse tpw on tpw.id=tpih.warehouse_id
+		where 
+			tpih.warehouse_id=${pd.warehouse_id}
+			and tpt.id=${pd.productid}
+			<if test="pd.ck_id!=0">
+				and tpih.ck_id=${pd.ck_id}
+			</if>	
+			<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+				<!-- 按供应商或者客户名称搜索 -->
+				<if test="pd.searchcriteria==1">
+					and (tps.supplier_name LIKE CONCAT('%','${pd.keyword}','%')
+					or tmt.merchant_name LIKE CONCAT('%','${pd.keyword}','%'))
+				</if>
+			</if>
+		order by tpih.rck_date desc
+	</select>
+
+
+
+	<select id="geProductByidlistPage" parameterType="page"
+		resultType="pd">
+		<if test="pd.type!=2 and pd.type!=4">
+			SELECT
+			tenoi.en_time AS en_time,
+			tenoi.order_num AS order_num,
+			tp.product_name AS product_name,
+			ts.supplier_name AS supplier_name,
+			tw.warehouse_name AS warehouse_name,
+			'1' AS type,
+			tenoi.quantity AS
+			quantity,
+			tmu.unit_name AS unit,
+			tenwo.is_temporary
+			FROM
+			t_en_order_item
+			AS tenoi,
+			t_product AS tp,
+			t_en_warehouse_order AS tenwo,
+			tp_supplier AS
+			ts,
+			t_product_inventory AS tpi,
+			tp_warehouse AS tw,
+			tp_meterage_unit AS
+			tmu
+			WHERE
+			tenoi.product_id = #{pd.productid}
+			AND tp.id =
+			tenoi.product_id
+			AND tenwo.order_num = tenoi.order_num
+			AND
+			tenwo.ivt_state = 2    <!-- 1是待入库 2是已入库 -->
+			AND ts.id = tenwo.supplier_id
+			AND tpi.product_id = tenoi.product_id
+			AND tpi.warehouse_id = tenoi.is_ivt_BK
+			AND tw.id = tpi.warehouse_id
+			AND tmu.id = tp.unit
+			and tpi.warehouse_id=${pd.warehouse_id}
+
+			<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+				<!-- 按供应商或者客户名称搜索 -->
+				<if test="pd.searchcriteria==1">
+					and ts.supplier_name LIKE CONCAT('%','${pd.keyword}','%'
+					)
+				</if>
+			</if>
+			<if test="pd.type != null and pd.type != ''"><!-- 关键词检索 -->
+				<if test="pd.type==3"> <!-- 临时入库状态 -->
+					and tenwo.is_temporary=1
+				</if>
+			</if>
+		</if>
+		<if test="pd.type ==0">
+			union all
+		</if>
+		<if test="pd.type!=1 and pd.type!=3">
+			SELECT
+			texoi.ex_time AS en_time,
+			texoi.order_num AS order_num,
+			tp.product_name AS product_name,
+			tm.merchant_name AS supplier_name,
+			tw.warehouse_name AS warehouse_name,
+			'2' AS type,
+			texoi.quantity AS
+			quantity,
+			tmu.unit_name AS unit,
+			texwo.is_temporary
+			FROM
+			t_ex_order_item
+			AS texoi,
+			t_product AS tp,
+			t_ex_warehouse_order AS texwo,
+			t_merchant AS
+			tm,
+			t_product_inventory AS tpi,
+			tp_warehouse AS tw,
+			tp_meterage_unit AS
+			tmu
+			WHERE
+			texoi.product_id = #{pd.productid}
+			AND tp.id =
+			texoi.product_id
+			AND texwo.order_num = texoi.order_num
+			AND
+			texwo.ivt_state = ${pd.ckzt}  <!-- 周转库最终出库有5个状态 ，存储库和次品库有2个状态 故参数传入 -->
+			AND tm.id = texwo.merchant_id
+			AND tpi.product_id = texoi.product_id
+			AND tpi.warehouse_id = texoi.is_ivt_BK
+			AND tw.id = tpi.warehouse_id
+			and tpi.warehouse_id=${pd.warehouse_id}
+			<if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+				<!-- 按供应商或者客户名称搜索 -->
+				<if test="pd.searchcriteria==1">
+					and tm.merchant_name LIKE CONCAT('%','${pd.keyword}','%'
+					)
+				</if>
+			</if>
+			<if test="pd.type != null and pd.type != ''"><!-- 关键词检索 -->
+				<if test="pd.type==4"> <!-- 临时出库状态 -->
+					and texwo.is_temporary=1
+				</if>
+			</if>
+		</if>
+		order by en_time desc
+	</select>
+
+	<update id="updateProductinverCo" >
+		update t_product_inventory
+		set cargo_space_id=${id}
+		where  ck_id=${ck_id}
+		and   warehouse_id=${warehouse_id}
+		and product_id=${product_id}
+	</update>
+	
+	<select id="findProductinverCo" resultType="pd" >
+		select * from t_product_inventory
+		where  ck_id=${ck_id}
+		and   warehouse_id=${warehouse_id}
+		and product_id=${product_id}
+	</select>
+	<select id="dataCenterPIlistPage" resultType="pd"
+		parameterType="page">
+		SELECT
+		tp.bar_code,
+		tp.product_name,
+		tp.specification,
+		tmu.unit_name,
+		tpp.product_price,
+		tni.final_quantity AS nquantity,
+		sum(txi.final_quantity) AS xquantity,
+		tni.final_quantity -
+		sum(txi.final_quantity) AS y
+		FROM
+		t_ex_order_item AS txi,
+		t_en_order_item AS tni
+		LEFT JOIN t_product AS tp ON tp.id =
+		tni.product_id
+		LEFT JOIN tp_meterage_unit AS tmu ON tmu.id = tp.unit
+		LEFT JOIN tp_product_price AS tpp ON tpp.product_id = tp.id
+		AND
+		tpp.price_type = 1
+		WHERE 1=1
+		<if test="pd.group_num != null and pd.group_num!= ''">
+			and tni.group_num = #{pd.group_num}
+		</if>
+		<if test="pd.group_num != null and pd.group_num!= ''">
+			AND
+			txi.group_num =#{pd.group_num}
+		</if>
+		AND tni.product_id = txi.product_id
+		<if test="pd.bar_code !=null and pd.bar_code != '' ">
+			AND tp.bar_code LIKE CONCAT('%','${pd.bar_code}','%' )
+		</if>
+		GROUP BY
+		txi.product_id
+ 
+	</select>
+
+</mapper>

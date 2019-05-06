@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="SellingOrderItemMapper">
+   <!-- 列表(全部) -->
+	<select id="sellingOrderItemlistPage" parameterType="page" resultType="pd"
+		useCache="false">
+		SELECT                         
+			tsoi.id,
+			tsoi.group_num,
+			tsoi.order_num,
+			tsoi.purchase_price,
+			tsoi.sale_price,
+			tsoi.final_quantity,
+			tsoi.quantity,
+			tsoi.creator ,
+			tsoi.comment,
+			tsoi.create_time,
+			tp.id as product_id,
+			tp.product_name,
+			tp.product_num,
+			tp.bar_code,
+			tp.min_stock_num,
+			tp.max_stock_num,
+		FROM t_selling_order_item tsoi
+		LEFT JOIN t_product tp ON tp.id = teno.product_id AND tp.is_shelve=1
+		where tsoi.state=1 
+     <if test="pd.keyword != null and pd.keyword != ''"><!-- 关键词检索 -->
+			   
+			   <if test="pd.searchcriteria==1">
+			    and  tsoi.group_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if>
+			    <if test="pd.searchcriteria==3">
+			    and tsoi.order_num LIKE  CONCAT('%','${pd.keyword}','%' )  
+			   </if> 
+	    </if>
+	      <if test="pd.searchcriteria==2">
+			         <if test="pd.StartDate!=null and pd.StartDate!=''">
+			          and tsoi.create_time &gt;= #{pd.StartDate} 
+		            </if>
+	              <if test="pd.EndDate!=null and pd.EndDate!=''">
+			        and tsoi.create_time &lt;= #{pd.EndDate} 
+		           </if>
+			   </if>
+			   ORDER BY tsoi.id DESC
+	</select>
+	
+	<!-- 新增-->
+	<insert id="save" parameterType="pd">
+		insert into t_selling_order_item(
+			group_num,
+			order_num,
+			purchase_price,
+			sale_price,
+			final_quantity,
+			quantity,
+			creator ,
+			comment,
+			create_time,
+			product_id
+		) values (
+			#{group_num},	
+			#{order_num},	
+			#{purchase_price},	
+			#{sale_price},
+			#{final_quantity},
+			#{quantity},
+			#{creator},	
+			#{comment},
+			NOW(),
+			#{product_id}	
+		)
+	</insert>
+	<!-- 新增-->
+	<insert id="saveOrderItem" parameterType="pd">
+		insert into t_selling_order_item(
+			group_num,
+			order_num,
+			purchase_price,
+			sale_price,
+			final_quantity,
+			quantity,
+			creator ,
+			comment,
+			create_time,
+			product_id,
+			state,
+			thstate
+		) values (
+			#{group_num},
+			#{order_num},
+			#{purchase_price},
+			#{sale_price},
+			#{final_quantity},
+			#{quantity},
+			#{creator},
+			#{comment},
+			NOW(),
+			#{product_id},
+			#{state},
+			#{thstate}
+		)
+	</insert>
+	<!-- 新增-->
+	<insert id="saveSellingOrderItem" useGeneratedKeys="true"  parameterType="java.util.List">
+	<selectKey resultType="long" keyProperty="id" order="AFTER">  
+        SELECT  
+        LAST_INSERT_ID()  
+    </selectKey>
+		insert into t_selling_order_item(
+			group_num,
+			order_num,
+			purchase_price,
+			sale_price,
+			final_quantity,
+			quantity,
+			creator ,
+			comment,
+			create_time,
+			product_id,
+			state
+		) values
+		 <foreach collection="list" item="item" index="index" separator="," >
+		  (
+			#{item.groupNum},	
+			#{item.orderNum},	
+			#{item.purchasePrice},	
+			#{item.salePrice},
+			#{item.finalQuantity},
+			#{item.quantity},
+			#{item.creator},	
+			#{item.comment},
+			NOW(),
+			#{item.product.id},
+			1	
+		)
+		</foreach>
+	</insert>
+	<!-- 删除-->
+	<delete id="delete" parameterType="pd">
+		UPDATE  t_selling_order_item
+		SET state=2
+		WHERE 
+			id = #{id}
+	</delete>
+	<!-- 删除-->
+	<delete id="deleteList" parameterType="java.util.List">
+		delete from t_selling_order_item
+		where group_num in
+		<foreach collection="list" item ="model" open="(" separator="," close=")">
+			#{model.groupNum}
+		</foreach>
+	</delete>
+	<!-- 修改 -->
+	<update id="edit" parameterType="pd">
+		update  t_selling_order_item
+			set 
+			<if test="purchase_price!=null and purchase_price!=''">
+				purchase_price=#{purchase_price},
+			</if>
+			<if test="final_quantity!=null and final_quantity!=''">
+				final_quantity=#{final_quantity},
+			</if>
+			<if test="creator!=null and creator!=''">
+				creator= #{creator},
+			</if>
+			<if test="comment!=null and comment!=''">
+				comment=#{comment},
+			</if>
+			<if test="product_id!=null and product_id!='' and product_id>0">
+				product_id=#{product_id},
+			</if>
+			where 
+				id = #{id}
+	</update>
+	
+	
+	<!-- 通过ID获取数据 -->
+	<select id="findByIdOrOrderNumOrGroupNum" parameterType="pd" resultType="pd">
+		SELECT                         
+			tsoi.id,
+			tsoi.group_num,
+			tsoi.order_num,
+			tsoi.purchase_price,
+			tsoi.sale_price,
+			tsoi.final_quantity,
+			tsoi.quantity,
+			tsoi.creator ,
+			tsoi.comment,
+			tsoi.create_time,
+			tp.id as product_id,
+			tp.product_name,
+			tp.product_num,
+			tp.bar_code,
+			tp.min_stock_num,
+			tp.max_stock_num,
+		FROM t_selling_order_item tsoi
+		LEFT JOIN t_product tp ON tp.id = teno.product_id AND tp.is_shelve=1
+		where tsoi.state=1 
+			<if test="id!=null and id!='' and id>0">
+				AND tsoi.id=#{id}
+			</if>
+			<if test="order_num!=null and order_num!='' ">
+				AND tsoi.order_num=#{order_num}
+			</if>
+			<if test="group_num!=null and group_num!='' ">
+				AND tsoi.group_num=#{group_num}
+			</if>
+	</select>
+		<!-- 导出excel -->
+	<select id="xsportexcel" parameterType="pd" resultType="pd">
+		SELECT
+			teoi.quantity,
+			teoi.final_quantity,
+			teoi.gift_quantity,
+			teoi.`comment`,
+			teoi.sale_price,
+			teoi.order_num,
+			teoi.group_num,
+			tm.merchant_name,
+			tm.merchant_num,
+			tpt.bar_code,
+			tpt.product_name,
+			tpt.product_num,
+			tma.area_name,
+			tm.short_name,
+			a.checked_state,
+			a.order_date,
+			a.type,
+			a.order_type
+		FROM
+			t_selling_order_item teoi
+		LEFT JOIN t_selling_order AS a ON a.order_num = teoi.order_num
+		LEFT JOIN t_merchant AS tm ON tm.ID = a.merchant_id
+		LEFT JOIN t_product tpt ON tpt.id = teoi.product_id
+		LEFT JOIN tm_area tma ON tma.id = tm.city
+		WHERE
+			1 = 1
+		<if test="group_num!=null and group_num!=''">
+			AND teoi.group_num like '%${group_num}%'
+		</if>
+		<if test="searchcriteria!=0">
+			and a.type=${searchcriteria}
+		</if>
+		<if test="ROLE_ID==32 and ROLE_ID!='' and ROLE_ID!=null">
+			AND tma.area_num=${USERNAME}
+		</if>
+		ORDER BY
+			CONVERT (tm.short_name USING gbk) COLLATE gbk_chinese_ci ASC
+	</select>
+	
+	<select id="updatesellitemproduct" resultType="pd" parameterType="pd">
+		SELECT
+			tsoi.id,
+			tsoi.order_num,
+			tsoi.product_id,
+			tsoi.quantity,
+			tsoi.gift_quantity,
+			tpa.product_activity,
+			tpa.quantity tpaquantity,
+			tpa.final_quantity 
+		FROM
+			t_selling_order_item tsoi
+		LEFT JOIN t_product_activity tpa ON tpa.product_id = tsoi.product_id and tpa.type = 1
+		AND tpa.state = 1
+		WHERE
+		 tsoi.id=#{id}
+	</select>
+	
+	<update id="updateitemproduct">
+		update t_selling_order_item
+
+		set gift_quantity=#{gift_quantity}
+		
+		where order_num=#{order_num}
+		and product_id=${product_id}
+	
+	</update>
+
+
+	<select id="checkProductById" parameterType="pd" resultType="pd">
+		SELECT id
+		FROM t_selling_order_item
+		WHERE order_num = #{order_num}
+		and product_id=#{product_id}
+	</select>
+	
+</mapper>

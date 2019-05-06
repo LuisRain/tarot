@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="SupplierArrivalrate">
+	<!-- 列表(全部) -->
+	<select id="findlistPage" parameterType="page" resultType="pd">
+			SELECT
+				su.supplier_name,
+				su.supplier_num,
+				sum(t.quantity) sumquantity,
+				sum(t.final_quantity) sumfinal_quantity,
+				ROUND(sum(t.final_quantity)/sum(t.quantity) * 100,2) quantity_dhl,
+				ROUND(sum(t.purchase_price * t.quantity) ,4) quantity_price,
+				ROUND(sum(t.purchase_price * t.final_quantity),4) final_quantity_price,
+				ROUND(sum(t.purchase_price * t.final_quantity) /sum(t.purchase_price * t.quantity) *100 ,2) price_dhl                                  
+			FROM
+				t_en_order_item t
+			LEFT JOIN t_en_warehouse_order tw on  tw.order_num =t.order_num 
+			LEFT JOIN tp_supplier su on su.id = tw.supplier_id
+			where 1=1   and tw.order_type=1
+			<if test="pd.startdate != null and pd.startdate !='' and pd.enddate!=null and pd.enddate!=''">
+				and  tw.create_time between #{pd.startdate} and #{pd.enddate}
+			</if>
+			GROUP BY tw.supplier_id
+			ORDER BY tw.create_time desc
+	</select>
+	<select id="findarrivalate" parameterType="pd" resultType="pd">
+			SELECT
+				su.supplier_name,
+				su.supplier_num,
+				sum(t.quantity) sumquantity,
+				sum(t.final_quantity) sumfinal_quantity,
+				ROUND(sum(t.final_quantity)/sum(t.quantity) * 100,2) quantity_dhl,
+				ROUND(sum(t.purchase_price * t.quantity) ,4) quantity_price,
+				ROUND(sum(t.purchase_price * t.final_quantity),4) final_quantity_price,
+				ROUND(sum(t.purchase_price * t.final_quantity) /sum(t.purchase_price * t.quantity) *100 ,2) price_dhl                                  
+			FROM
+				t_en_order_item t
+			LEFT JOIN t_en_warehouse_order tw on  tw.order_num =t.order_num 
+			LEFT JOIN tp_supplier su on su.id = tw.supplier_id
+			where 1=1 and tw.order_type=1
+			<if test="startdate != null and startdate !='' and enddate!=null and enddate!=''">
+				and  tw.create_time between #{startdate} and #{enddate}
+			</if>
+			GROUP BY tw.supplier_id
+			ORDER BY tw.create_time desc
+	</select>
+
+
+</mapper>

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="SitestatisticsMapper">
+
+	<insert id="saveSite" parameterType="pd" useGeneratedKeys="true" >
+		insert into t_statistics 
+		(
+			product_id,
+			merchant_id,
+			inventory,
+			type
+		) values(
+			#{product_id},
+			#{merchant_id},
+			#{inventory},
+			#{state}
+			)
+	
+	</insert>
+	
+	<insert id="saveSiteItem" parameterType="pd" useGeneratedKeys="true">
+		insert into t_statistics_item 
+		(
+			type,
+			quantity,
+			merchant_id,
+			product_id,
+			group_num
+		)VALUES(
+			#{state},
+			#{inventory},
+			#{merchant_id},
+			#{product_id},
+			#{group_num}
+			)
+	</insert>
+	
+	<update id="updateSiteInventory" parameterType="pd"> 
+		update t_statistics
+		set 
+			inventory=${inventory}
+		where 
+			merchant_id=${merchant_id}
+			and product_id=${product_id}
+	</update>
+	
+	<!-- 改变标识符 -->
+	<update id="updateSiteType" parameterType="java.lang.String">
+		update t_statistics tsi , t_statistics_item tss 
+	 	set tsi.type =(select if(tsi.type=1,2,1))
+		where tss.merchant_id=tsi.merchant_id and tss.product_id=tsi.product_id
+		and tss.group_num=#{groupNum}
+	</update>
+	
+	
+	<select id="findSiteMerchantlistPage" parameterType="page" resultType="pd">
+		select tsi.create_time,
+		tsi.inventory,
+		tmt.short_name,
+		tpt.product_name,
+		tpt.bar_code,
+		tsi.product_id,
+		tsi.merchant_id
+		from t_statistics tsi
+		LEFT JOIN t_merchant tmt on tmt.id=tsi.merchant_id
+		LEFT JOIN t_product tpt on tpt.id=tsi.product_id
+		where 1=1
+			 <if test="pd.bar_code != null and pd.bar_code != ''"><!-- 关键词检索 -->
+			   	 and  tpt.bar_code LIKE  CONCAT('%','${pd.bar_code}','%' )  
+	   		 </if>
+	     	<if test="pd.short_name != null and pd.short_name != ''"><!-- 关键词检索 -->
+			 	 and  (tmt.short_name LIKE  CONCAT('%','${pd.short_name}','%' )  or tmt.merchant_name LIKE  CONCAT('%','${pd.short_name}','%' ) )
+	    	</if>
+	</select>
+	<select id="findSiteitemlistPage" parameterType="page"  resultType="pd">
+		select tsi.create_time,
+		tsi.quantity,tsi.type,tmt.short_name,
+		tpt.product_name,tpt.bar_code,
+		tsi.group_num
+		from t_statistics_item tsi
+		LEFT JOIN t_merchant tmt on tmt.id=tsi.merchant_id
+		LEFT JOIN t_product tpt on tpt.id=tsi.product_id
+		where tsi.product_id=${pd.product_id} and tsi.merchant_id=${pd.merchant_id}
+		order by tsi.id desc
+	</select>
+	<select id="findsitebyid" resultType="pd"  useCache="false">
+		select * from t_statistics where merchant_id=${merchant_id} and product_id=${product_id}
+	</select>
+	<select id="findsitestat" resultType="pd"  useCache="false">
+		select * from t_statistics 
+	</select>
+	
+	<insert id="saveSiteList" useGeneratedKeys="true" parameterType="java.util.List">
+		insert into t_statistics 
+		(
+			product_id,
+			merchant_id,
+			inventory,
+			type
+		) values
+		 <foreach collection="list" item="emp" separator=",">  
+            (#{emp.product_id},#{emp.merchant_id},${emp.inventory},#{emp.state})  
+        </foreach>  
+	</insert>
+	<insert id="saveSiteItemList" parameterType="java.util.List" useGeneratedKeys="true">
+		insert into t_statistics_item 
+		(
+			type,
+			quantity,
+			merchant_id,
+			product_id,
+			group_num
+		)VALUES
+		<foreach collection="list" item="emp" separator=",">  
+            (#{emp.state},${emp.inventorys},#{emp.merchant_id},#{emp.product_id},#{emp.group_num})  
+        </foreach>  
+	</insert>
+	
+	<update id="updateSiteInventoryList" parameterType="pd"> 
+		update t_statistics
+		set  inventory=
+		<foreach collection="list" item="emp"  open="CASE id " close=" end">  
+          	WHEN ${emp.id} THEN ${emp.inventory} 
+        </foreach> 
+		where 
+			id in 
+			<foreach collection="list" item="emp"  open="(" close=" )" separator=",">  
+          	${emp.id}
+        </foreach> 
+	</update>
+	
+	
+
+</mapper>
